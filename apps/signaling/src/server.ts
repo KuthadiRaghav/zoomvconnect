@@ -34,7 +34,12 @@ export class SignalingServer {
 
     constructor(config: ServerConfig) {
         this.config = config;
-        this.httpServer = createServer();
+        this.httpServer = createServer((req, res) => {
+            if (req.url === "/health") {
+                res.writeHead(200);
+                res.end("OK");
+            }
+        });
         this.wss = new WebSocketServer({ server: this.httpServer });
         this.redis = new Redis(config.redisUrl);
         this.subscriber = new Redis(config.redisUrl);
@@ -313,7 +318,7 @@ export class SignalingServer {
     }
 
     start() {
-        this.httpServer.listen(this.config.port);
+        this.httpServer.listen(this.config.port, "0.0.0.0");
     }
 
     async stop() {
