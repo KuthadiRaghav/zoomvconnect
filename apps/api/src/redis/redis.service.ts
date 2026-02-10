@@ -10,16 +10,37 @@ export class RedisService implements OnModuleDestroy {
 
     constructor(private configService: ConfigService) {
         const redisUrl = this.configService.get<string>("REDIS_URL", "redis://localhost:6379");
-        const redisOpts = {
+
+        // Upstash (and most cloud Redis) requires TLS
+        const isLocalhost = redisUrl.includes("localhost") || redisUrl.includes("127.0.0.1");
+        const needsTls = redisUrl.startsWith("rediss://") || !isLocalhost;
+
+        const redisOpts: any = {
             maxRetriesPerRequest: 3,
             lazyConnect: true,
             family: 4, // Force IPv4
+            ...(needsTls ? { tls: { rejectUnauthorized: false } } : {}),
         };
-        console.log(`[API] Connecting to Redis at ${redisUrl.replace(/:[^:@]*@/, ":***@")} with options:`, redisOpts);
 
-        this.client = new Redis(redisUrl, redisOpts);
-        this.subscriber = new Redis(redisUrl, redisOpts);
-        this.publisher = new Redis(redisUrl, redisOpts);
+        // If URL starts with rediss://, convert to redis:// since we handle TLS via options
+        const cleanUrl = redisUrl.replace(/^rediss:\/\//, "redis://");
+
+        console.log(`[API] Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} with TLS: ${needsTls}`);
+
+        this.client = new Redis(cleanUrl, redisOpts);
+        this.subscriber = new Redis(cleanUrl, redisOpts);
+        this.publisher = new Redis(cleanUrl, redisOpts);
+
+        // Attach error handlers to prevent unhandled error crashes
+        [this.client, this.subscriber, this.publisher].forEach((conn, i) => {
+            const names = ["client", "subscriber", "publisher"];
+            conn.on("error", (err) => {
+                console.error(`[API] Redis ${names[i]} error:`, err.message);
+            });
+            conn.on("connect", () => {
+                console.log(`[API] Redis ${names[i]} connected successfully`);
+            });
+        });
 
         // Connect asynchronously — don't block app startup
         this.client.connect().catch(() => { });

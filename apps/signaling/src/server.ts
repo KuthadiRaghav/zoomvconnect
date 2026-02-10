@@ -41,10 +41,30 @@ export class SignalingServer {
             }
         });
         this.wss = new WebSocketServer({ server: this.httpServer });
-        const redisOptions = { family: 4 };
-        console.log(`[Signaling] Connecting to Redis at ${config.redisUrl.replace(/:[^:@]*@/, ":***@")} with options:`, redisOptions);
-        this.redis = new Redis(config.redisUrl, redisOptions);
-        this.subscriber = new Redis(config.redisUrl, redisOptions);
+
+        // Upstash (and most cloud Redis) requires TLS
+        const isLocalhost = config.redisUrl.includes("localhost") || config.redisUrl.includes("127.0.0.1");
+        const needsTls = config.redisUrl.startsWith("rediss://") || !isLocalhost;
+
+        const redisOptions: any = {
+            family: 4,
+            ...(needsTls ? { tls: { rejectUnauthorized: false } } : {}),
+        };
+
+        // If URL starts with rediss://, convert to redis:// since we handle TLS via options
+        const cleanUrl = config.redisUrl.replace(/^rediss:\/\//, "redis://");
+
+        console.log(`[Signaling] Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} with TLS: ${needsTls}`);
+
+        this.redis = new Redis(cleanUrl, redisOptions);
+        this.subscriber = new Redis(cleanUrl, redisOptions);
+
+        // Attach error handlers to prevent unhandled error crashes
+        this.redis.on("error", (err) => console.error("[Signaling] Redis error:", err.message));
+        this.redis.on("connect", () => console.log("[Signaling] Redis connected successfully"));
+        this.subscriber.on("error", (err) => console.error("[Signaling] Redis subscriber error:", err.message));
+        this.subscriber.on("connect", () => console.log("[Signaling] Redis subscriber connected successfully"));
+
         this.roomManager = new RoomManager(this.redis);
 
         this.setupWebSocket();
