@@ -15,6 +15,7 @@ export class RedisService implements OnModuleDestroy {
             lazyConnect: true,
             family: 4, // Force IPv4
         };
+        console.log(`[API] Connecting to Redis at ${redisUrl.replace(/:[^:@]*@/, ":***@")} with options:`, redisOpts);
 
         this.client = new Redis(redisUrl, redisOpts);
         this.subscriber = new Redis(redisUrl, redisOpts);

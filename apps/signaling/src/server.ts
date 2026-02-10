@@ -42,6 +42,7 @@ export class SignalingServer {
         });
         this.wss = new WebSocketServer({ server: this.httpServer });
         const redisOptions = { family: 4 };
+        console.log(`[Signaling] Connecting to Redis at ${config.redisUrl.replace(/:[^:@]*@/, ":***@")} with options:`, redisOptions);
         this.redis = new Redis(config.redisUrl, redisOptions);
         this.subscriber = new Redis(config.redisUrl, redisOptions);
         this.roomManager = new RoomManager(this.redis);
