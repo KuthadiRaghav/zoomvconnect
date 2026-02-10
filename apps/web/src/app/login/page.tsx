@@ -17,11 +17,7 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-            const loginUrl = `${apiUrl}/api/v1/auth/login`;
-            console.log("[Login] Fetching:", loginUrl);
-
-            const response = await fetch(loginUrl, {
+            const response = await fetch("/api/proxy/api/v1/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -40,14 +36,7 @@ export default function LoginPage() {
             // Redirect to dashboard or home
             router.push("/dashboard");
         } catch (err) {
-            const errMsg = err instanceof Error ? err.message : "Login failed";
-            if (errMsg === "Failed to fetch" || errMsg.includes("fetch")) {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-                setError(`Network error: Could not reach ${apiUrl}. Please check your internet connection or try again.`);
-                console.error("[Login] Failed to fetch. API URL:", apiUrl, "Error:", err);
-            } else {
-                setError(errMsg);
-            }
+            setError(err instanceof Error ? err.message : "Login failed");
         } finally {
             setIsLoading(false);
         }

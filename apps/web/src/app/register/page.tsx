@@ -30,11 +30,7 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-            const registerUrl = `${apiUrl}/api/v1/auth/register`;
-            console.log("[Register] Fetching:", registerUrl);
-
-            const response = await fetch(registerUrl, {
+            const response = await fetch("/api/proxy/api/v1/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, email, password }),
@@ -53,14 +49,7 @@ export default function RegisterPage() {
             // Redirect to dashboard
             router.push("/dashboard");
         } catch (err) {
-            const errMsg = err instanceof Error ? err.message : "Registration failed";
-            if (errMsg === "Failed to fetch" || errMsg.includes("fetch")) {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-                setError(`Network error: Could not reach ${apiUrl}. Please check your internet connection or try again.`);
-                console.error("[Register] Failed to fetch. API URL:", apiUrl, "Error:", err);
-            } else {
-                setError(errMsg);
-            }
+            setError(err instanceof Error ? err.message : "Registration failed");
         } finally {
             setIsLoading(false);
         }

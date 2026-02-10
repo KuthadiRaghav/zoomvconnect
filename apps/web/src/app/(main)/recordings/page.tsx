@@ -32,7 +32,7 @@ export default function RecordingsPage() {
             return;
         }
 
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/v1/meetings/recordings/list`, {
+        fetch("/api/proxy/api/v1/meetings/recordings/list", {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -152,8 +152,8 @@ export default function RecordingsPage() {
                                     {/* Status Badge */}
                                     <div className="absolute top-3 right-3">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase backdrop-blur-md border ${rec.status === "READY" ? "bg-green-500/20 text-green-400 border-green-500/30" :
-                                                rec.status === "PROCESSING" ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" :
-                                                    "bg-red-500/20 text-red-400 border-red-500/30"
+                                            rec.status === "PROCESSING" ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" :
+                                                "bg-red-500/20 text-red-400 border-red-500/30"
                                             }`}>
                                             {rec.status}
                                         </span>

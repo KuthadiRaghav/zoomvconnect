@@ -85,7 +85,7 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
         try {
             if (isRecording && recordingId) {
                 // Stop recording
-                await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/v1/meetings/${meetingId}/recording/${recordingId}/stop`, {
+                await fetch(`/api/proxy/api/v1/meetings/${meetingId}/recording/${recordingId}/stop`, {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -93,7 +93,7 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 setRecordingId(null);
             } else {
                 // Start recording
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/v1/meetings/${meetingId}/recording/start`, {
+                const res = await fetch(`/api/proxy/api/v1/meetings/${meetingId}/recording/start`, {
                     method: "POST",
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -114,7 +114,7 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
 
         const token = localStorage.getItem("accessToken");
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/v1/meetings/${meetingId}/end`, {
+            await fetch(`/api/proxy/api/v1/meetings/${meetingId}/end`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
             });
