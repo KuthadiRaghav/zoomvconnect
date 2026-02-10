@@ -3,7 +3,7 @@
 # ============================================
 FROM node:20-alpine AS deps
 
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 
 WORKDIR /app
@@ -50,7 +50,7 @@ RUN pnpm --filter @zoomvconnect/api build
 # ============================================
 FROM node:20-alpine AS runner
 
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init openssl
 
 WORKDIR /app
 
