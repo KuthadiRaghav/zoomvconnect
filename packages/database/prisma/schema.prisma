@@ -1,0 +1,346 @@
+// This is your Prisma schema file
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// User & Authentication
+// ===========================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  passwordHash  String?
+  emailVerified DateTime?
+  
+  // OAuth providers
+  accounts      Account[]
+  
+  // Meetings
+  hostedMeetings    Meeting[]      @relation("MeetingHost")
+  participations    Participant[]
+  
+  // Settings
+  settings      UserSettings?
+  
+  // Chat
+  chatMessages  ChatMessage[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model UserSettings {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Audio/Video defaults
+  defaultMicOn    Boolean @default(false)
+  defaultCameraOn Boolean @default(false)
+  
+  // Appearance
+  theme           String  @default("system")
+  
+  // Notifications
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ===========================================
+// Meetings
+// ===========================================
+
+model Meeting {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  
+  // Scheduling
+  scheduledStart  DateTime?
+  scheduledEnd    DateTime?
+  actualStart     DateTime?
+  actualEnd       DateTime?
+  
+  // Configuration
+  type            MeetingType   @default(INSTANT)
+  status          MeetingStatus @default(SCHEDULED)
+  passcode        String?
+  waitingRoom     Boolean       @default(false)
+  
+  // Host
+  hostId          String
+  host            User          @relation("MeetingHost", fields: [hostId], references: [id])
+  
+  // LiveKit room name
+  roomName        String        @unique @default(cuid())
+  
+  // Participants
+  participants    Participant[]
+  
+  // Recordings
+  recordings      Recording[]
+  
+  // Breakout rooms
+  breakoutRooms   BreakoutRoom[]
+  
+  // Chat messages
+  chatMessages    ChatMessage[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([hostId])
+  @@index([status])
+  @@index([scheduledStart])
+  @@index([roomName])
+}
+
+model Participant {
+  id          String          @id @default(cuid())
+  
+  meetingId   String
+  meeting     Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  userId      String?
+  user        User?           @relation(fields: [userId], references: [id])
+  
+  // Guest participants (no account)
+  guestName   String?
+  guestEmail  String?
+  
+  role        ParticipantRole @default(ATTENDEE)
+  joinedAt    DateTime?
+  leftAt      DateTime?
+  
+  // Breakout room assignment
+  breakoutRoomId String?
+  breakoutRoom   BreakoutRoom? @relation(fields: [breakoutRoomId], references: [id])
+  
+  // Invite token for guests
+  inviteToken String?         @unique
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@index([inviteToken])
+}
+
+model BreakoutRoom {
+  id          String        @id @default(cuid())
+  
+  meetingId   String
+  meeting     Meeting       @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  name        String
+  
+  // LiveKit room name for this breakout
+  roomName    String        @unique @default(cuid())
+  
+  participants Participant[]
+  
+  // Timer
+  endsAt      DateTime?
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([meetingId])
+}
+
+// ===========================================
+// Chat
+// ===========================================
+
+model ChatMessage {
+  id          String    @id @default(cuid())
+  
+  meetingId   String
+  meeting     Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id])
+  
+  content     String    @db.Text
+  
+  // For DMs within meeting
+  recipientId String?
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([meetingId])
+  @@index([senderId])
+}
+
+// ===========================================
+// Recordings & Transcription
+// ===========================================
+
+model Recording {
+  id          String          @id @default(cuid())
+  
+  meetingId   String
+  meeting     Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  status      RecordingStatus @default(PROCESSING)
+  
+  // Files
+  videoUrl    String?
+  audioUrl    String?
+  thumbnailUrl String?
+  
+  // Metadata
+  duration    Int?            // seconds
+  fileSize    BigInt?         // bytes
+  
+  // LiveKit egress ID
+  egressId    String?
+  
+  // Transcription
+  transcript  Transcript?
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([meetingId])
+  @@index([status])
+}
+
+model Transcript {
+  id          String    @id @default(cuid())
+  
+  recordingId String    @unique
+  recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+  
+  // Timestamped segments
+  segments    Json      // Array of { start, end, speaker, text }
+  
+  // AI-generated
+  summary     String?   @db.Text
+  actionItems Json?     // Array of action items
+  keywords    String[]  // Extracted keywords for search
+  
+  language    String    @default("en")
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ===========================================
+// Analytics & Audit
+// ===========================================
+
+model MeetingAnalytics {
+  id              String    @id @default(cuid())
+  meetingId       String
+  
+  // Participation
+  peakParticipants Int      @default(0)
+  totalParticipants Int     @default(0)
+  
+  // Duration
+  totalDuration    Int      @default(0) // seconds
+  
+  // Engagement
+  chatMessageCount Int      @default(0)
+  reactionCount    Int      @default(0)
+  handRaiseCount   Int      @default(0)
+  
+  // Quality metrics (aggregated)
+  avgPacketLoss    Float?
+  avgJitter        Float?
+  avgRoundTripTime Float?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([meetingId])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  
+  userId      String?
+  action      String
+  resource    String
+  resourceId  String?
+  
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ===========================================
+// Enums
+// ===========================================
+
+enum MeetingType {
+  INSTANT
+  SCHEDULED
+  RECURRING
+  PERSONAL_ROOM
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  WAITING
+  IN_PROGRESS
+  ENDED
+  CANCELLED
+}
+
+enum ParticipantRole {
+  HOST
+  COHOST
+  ATTENDEE
+}
+
+enum RecordingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}

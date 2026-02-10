@@ -1,0 +1,9 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/signaling/Dockerfile"
+watchPatterns = ["apps/signaling/**", "packages/shared/**"]
+
+[deploy]
+startCommand = "node apps/signaling/dist/index.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

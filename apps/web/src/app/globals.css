@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #0a0a0a;
+  --background: #ffffff;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
+  --ring: #3b82f6;
+}
+
+.dark {
+  --foreground: #fafafa;
+  --background: #0a0a0a;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --ring: #3b82f6;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Meeting room styles */
+.meeting-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  height: 100%;
+  padding: 0.5rem;
+}
+
+.participant-tile {
+  @apply relative rounded-xl overflow-hidden bg-gray-900 aspect-video;
+}
+
+.participant-tile video {
+  @apply absolute inset-0 w-full h-full object-cover;
+}
+
+.participant-overlay {
+  @apply absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent;
+}
+
+.participant-name {
+  @apply text-white text-sm font-medium truncate;
+}
+
+.control-bar {
+  @apply fixed bottom-0 left-0 right-0 flex items-center justify-center gap-2 p-4 bg-black/50 backdrop-blur-lg;
+}
+
+.control-button {
+  @apply p-3 rounded-full transition-all duration-200;
+}
+
+.control-button:hover {
+  @apply scale-110;
+}
+
+.control-button.active {
+  @apply bg-primary-600 text-white;
+}
+
+.control-button.inactive {
+  @apply bg-gray-700 text-white hover:bg-gray-600;
+}
+
+.control-button.danger {
+  @apply bg-red-600 text-white hover:bg-red-500;
+}
+
+/* Chat panel */
+.chat-panel {
+  @apply flex flex-col h-full bg-gray-900 border-l border-gray-800;
+}
+
+.chat-messages {
+  @apply flex-1 overflow-y-auto p-4 space-y-3;
+}
+
+.chat-message {
+  @apply p-3 rounded-lg max-w-[85%];
+}
+
+.chat-message.sent {
+  @apply bg-primary-600 text-white ml-auto;
+}
+
+.chat-message.received {
+  @apply bg-gray-800 text-white;
+}
+
+/* Reactions */
+.reaction-container {
+  @apply fixed bottom-24 left-1/2 -translate-x-1/2 flex gap-2;
+}
+
+.reaction {
+  @apply text-4xl animate-bounce;
+  animation: float-up 2s ease-out forwards;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-100px);
+  }
+}
+
+/* Active speaker highlight */
+.active-speaker {
+  @apply ring-4 ring-green-500;
+}
+
+/* Loading states */
+.skeleton {
+  @apply animate-pulse bg-gray-800 rounded;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
+
+/* LiveKit GridLayout Overrides */
+.lk-grid-layout {
+  height: 100% !important;
+  width: 100% !important;
+  display: grid !important;
+  gap: 0.75rem !important;
+  padding: 0.75rem !important;
+}
+
+/* Ensure tiles fill available space */
+.lk-participant-tile {
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lk-participant-tile video {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+/* Improve participant name display */
+.lk-participant-name {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  padding: 0.5rem 0.75rem;
+}
+
+/* Focus layout improvements */
+.lk-focus-layout {
+  height: 100% !important;
+}
+
+.lk-focus-layout-container {
+  height: 100% !important;
+}
+
+/* Carousel layout for filmstrip */
+.lk-carousel {
+  gap: 0.5rem;
+}
+
+.lk-carousel .lk-participant-tile {
+  border-radius: 0.75rem;
+  min-width: 160px;
+}

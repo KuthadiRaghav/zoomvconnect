@@ -1,0 +1,35 @@
+# LiveKit Server Configuration
+# Development configuration - DO NOT use in production
+
+port: 7880
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: false
+  tcp_port: 7881
+  udp_port: 7882
+
+redis:
+  address: redis:6379
+
+# Development keys - replace in production
+keys:
+  devkey: secret
+
+room:
+  auto_create: true
+  empty_timeout: 300
+  max_participants: 100
+
+logging:
+  level: info
+  pion_level: warn
+
+# TURN disabled for development
+turn:
+  enabled: false
+
+webhook:
+  urls: []
+
+region: local

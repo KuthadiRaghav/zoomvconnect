@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Turbo cache
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docs & images
+docs/
+*.md
+!README.md
+*.png
+*.jpg
+*.jpeg
+
+# GitHub
+.github/
