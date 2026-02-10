@@ -7,8 +7,11 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
-    // Security
-    app.use(helmet());
+    // Security - configure helmet for cross-origin API access
+    app.use(helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+        crossOriginOpenerPolicy: { policy: "unsafe-none" },
+    }));
     // CORS - support multiple origins (comma-separated) & strip trailing slashes
     const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
     const allowedOrigins = corsOrigin.split(",").map(o => o.trim().replace(/\/+$/, ""));
