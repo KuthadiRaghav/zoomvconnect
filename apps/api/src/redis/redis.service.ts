@@ -10,10 +10,16 @@ export class RedisService implements OnModuleDestroy {
 
     constructor(private configService: ConfigService) {
         const redisUrl = this.configService.get<string>("REDIS_URL", "redis://localhost:6379");
+        const redisOpts = { maxRetriesPerRequest: 3, lazyConnect: true };
 
-        this.client = new Redis(redisUrl);
-        this.subscriber = new Redis(redisUrl);
-        this.publisher = new Redis(redisUrl);
+        this.client = new Redis(redisUrl, redisOpts);
+        this.subscriber = new Redis(redisUrl, redisOpts);
+        this.publisher = new Redis(redisUrl, redisOpts);
+
+        // Connect asynchronously — don't block app startup
+        this.client.connect().catch(() => { });
+        this.subscriber.connect().catch(() => { });
+        this.publisher.connect().catch(() => { });
     }
 
     async onModuleDestroy() {
