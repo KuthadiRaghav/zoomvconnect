@@ -10,7 +10,11 @@ export class RedisService implements OnModuleDestroy {
 
     constructor(private configService: ConfigService) {
         const redisUrl = this.configService.get<string>("REDIS_URL", "redis://localhost:6379");
-        const redisOpts = { maxRetriesPerRequest: 3, lazyConnect: true };
+        const redisOpts = {
+            maxRetriesPerRequest: 3,
+            lazyConnect: true,
+            family: 4, // Force IPv4
+        };
 
         this.client = new Redis(redisUrl, redisOpts);
         this.subscriber = new Redis(redisUrl, redisOpts);
