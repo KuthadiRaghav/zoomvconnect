@@ -66,7 +66,7 @@ USER signaling
 
 EXPOSE 4001
 
-ENV SIGNALING_PORT=4001
+# ENV SIGNALING_PORT=4001
 
 # Use dumb-init for proper signal handling
 CMD ["dumb-init", "node", "apps/signaling/dist/index.js"]

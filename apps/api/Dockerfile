@@ -77,7 +77,7 @@ USER nestjs
 
 EXPOSE 4000
 
-ENV PORT=4000
+# ENV PORT=4000
 
 # Use dumb-init for proper signal handling
 CMD ["dumb-init", "node", "apps/api/dist/main.js"]

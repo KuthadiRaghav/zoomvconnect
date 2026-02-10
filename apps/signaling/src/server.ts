@@ -93,12 +93,13 @@ export class SignalingServer {
 
         // Heartbeat to detect dead connections
         this.pingInterval = setInterval(() => {
-            this.wss.clients.forEach((ws: AuthenticatedSocket) => {
-                if (!ws.isAlive) {
-                    return ws.terminate();
+            this.wss.clients.forEach((ws) => {
+                const extWs = ws as AuthenticatedSocket;
+                if (!extWs.isAlive) {
+                    return extWs.terminate();
                 }
-                ws.isAlive = false;
-                ws.ping();
+                extWs.isAlive = false;
+                extWs.ping();
             });
         }, 30000);
     }
@@ -294,7 +295,8 @@ export class SignalingServer {
         await this.redis.publish(`room:${roomId}`, JSON.stringify(message));
 
         // Also broadcast to local connections
-        this.wss.clients.forEach((client: AuthenticatedSocket) => {
+        this.wss.clients.forEach((ws) => {
+            const client = ws as AuthenticatedSocket;
             if (
                 client.readyState === WebSocket.OPEN &&
                 client.roomId === roomId &&
@@ -306,7 +308,8 @@ export class SignalingServer {
     }
 
     private async sendToParticipant(roomId: string, participantId: string, message: any) {
-        this.wss.clients.forEach((client: AuthenticatedSocket) => {
+        this.wss.clients.forEach((ws) => {
+            const client = ws as AuthenticatedSocket;
             if (
                 client.readyState === WebSocket.OPEN &&
                 client.roomId === roomId &&

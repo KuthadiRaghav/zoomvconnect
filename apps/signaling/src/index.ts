@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { SignalingServer } from "./server";
 
-const PORT = parseInt(process.env.SIGNALING_PORT || "4001", 10);
+const PORT = parseInt(process.env.PORT || process.env.SIGNALING_PORT || "4001", 10);
 
 const server = new SignalingServer({
     port: PORT,
