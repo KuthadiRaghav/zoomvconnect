@@ -80,9 +80,9 @@ git push -u origin main
 
 1. In your Railway project, click **"+ New"** → **"GitHub Repo"**
 2. Select the same repo → name the service `api`
-3. In the service settings, set:
-   - **Root Directory:** `apps/api`
-   - **Build Command:** Leave empty (uses Dockerfile)
+3. In the service settings:
+   - **Root Directory:** Leave **empty** (the Dockerfile needs the full monorepo as context)
+   - **Build Command:** Leave empty (uses Dockerfile automatically via `railway.toml`)
 4. Go to **Variables** tab and add:
 
    | Variable | Value |
@@ -105,7 +105,7 @@ git push -u origin main
 
 1. Click **"+ New"** → **"GitHub Repo"** again
 2. Select the same repo → name the service `signaling`
-3. Set **Root Directory:** `apps/signaling`
+3. **Root Directory:** Leave **empty** (same reason as the API)
 4. Add Variables:
 
    | Variable | Value |

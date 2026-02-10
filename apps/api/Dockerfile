@@ -32,7 +32,7 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
-COPY pnpm-workspace.yaml package.json turbo.json ./
+COPY pnpm-workspace.yaml package.json turbo.json tsconfig.json ./
 COPY packages/database/ ./packages/database/
 COPY packages/shared/ ./packages/shared/
 COPY apps/api/ ./apps/api/
