@@ -9,10 +9,14 @@ async function bootstrap() {
 
     // Security
     app.use(helmet());
+    // CORS - support multiple origins (comma-separated) & strip trailing slashes
+    const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+    const allowedOrigins = corsOrigin.split(",").map(o => o.trim().replace(/\/+$/, ""));
     app.enableCors({
-        origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+        origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
         credentials: true,
     });
+    console.log("[API] CORS allowed origins:", allowedOrigins);
 
     // API versioning
     app.enableVersioning({
