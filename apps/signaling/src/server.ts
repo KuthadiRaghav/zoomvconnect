@@ -41,8 +41,9 @@ export class SignalingServer {
             }
         });
         this.wss = new WebSocketServer({ server: this.httpServer });
-        this.redis = new Redis(config.redisUrl);
-        this.subscriber = new Redis(config.redisUrl);
+        const redisOptions = { family: 4 };
+        this.redis = new Redis(config.redisUrl, redisOptions);
+        this.subscriber = new Redis(config.redisUrl, redisOptions);
         this.roomManager = new RoomManager(this.redis);
 
         this.setupWebSocket();
