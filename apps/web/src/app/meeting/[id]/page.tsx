@@ -40,9 +40,34 @@ export default function MeetingPage() {
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/v1/meetings/${meetingId}/join`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+            let actualMeetingId = meetingId;
+
+            // If this is a new meeting, create it first
+            if (meetingId === "new") {
+                const createRes = await fetch(`${apiUrl}/api/v1/meetings`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                        title: "Instant Meeting",
+                        type: "INSTANT",
+                    }),
+                });
+
+                if (!createRes.ok) {
+                    const data = await createRes.json();
+                    throw new Error(data.message || "Failed to create meeting");
+                }
+
+                const created = await createRes.json();
+                actualMeetingId = created.id;
+            }
+
+            // Now join the meeting
+            const response = await fetch(`${apiUrl}/api/v1/meetings/${actualMeetingId}/join`, {
                 method: "POST",
                 headers,
+                body: JSON.stringify({}),
             });
 
             if (!response.ok) {
