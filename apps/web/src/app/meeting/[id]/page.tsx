@@ -32,13 +32,17 @@ export default function MeetingPage() {
 
         try {
             const token = localStorage.getItem("accessToken");
+
+            // Require login for creating/joining meetings
+            if (!token) {
+                router.push(`/login`);
+                return;
+            }
+
             const headers: Record<string, string> = {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
             };
-
-            if (token) {
-                headers["Authorization"] = `Bearer ${token}`;
-            }
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
             let actualMeetingId = meetingId;

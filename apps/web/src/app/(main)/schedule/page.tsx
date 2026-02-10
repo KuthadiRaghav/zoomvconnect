@@ -30,7 +30,7 @@ export default function SchedulePage() {
                 throw new Error("Invalid start time");
             }
 
-            const res = await fetch("/api/v1/meetings", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/v1/meetings`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
