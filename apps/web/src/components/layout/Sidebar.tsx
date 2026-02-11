@@ -33,34 +33,55 @@ const SidebarItem = ({
     );
 };
 
-export default function Sidebar() {
+interface SidebarProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
 
     const isActive = (path: string) => pathname === path;
 
     const handleLogout = () => {
+        // ... logout logic ...
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         router.push("/login");
     };
 
     return (
-        <aside className="w-64 h-screen fixed left-0 top-0 bg-gray-900/50 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6 z-50">
+        <aside
+            className={`w-64 h-screen fixed left-0 top-0 bg-gray-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6 z-50 transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
+        >
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-10 px-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-lg flex items-center justify-center shadow-lg shadow-primary-500/20">
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+            <div className="flex items-center justify-between mb-10 px-2">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-600 rounded-lg flex items-center justify-center shadow-lg shadow-primary-500/20">
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                        VConnect
+                    </span>
                 </div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                    VConnect
-                </span>
+                {/* Close button for mobile */}
+                <button
+                    onClick={onClose}
+                    className="md:hidden p-1 text-gray-400 hover:text-white"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 space-y-2">
+                {/* ... nav items ... */}
                 <SidebarItem
                     href="/dashboard"
                     active={isActive("/dashboard")}
