@@ -53,8 +53,8 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
     return (
         <aside
-            className={`w-64 h-screen fixed left-0 top-0 bg-gray-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6 z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
-                } ${isOpen ? "visible" : "invisible lg:visible"}`}
+            className={`w-64 h-screen fixed left-0 top-0 bg-gray-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6 z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "hidden lg:flex"
+                }`}
         >
             {/* Logo */}
             <div className="flex items-center justify-between mb-10 px-2">
