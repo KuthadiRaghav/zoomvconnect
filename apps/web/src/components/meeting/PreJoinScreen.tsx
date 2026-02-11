@@ -30,9 +30,9 @@ export function PreJoinScreen({ meetingId, meetingTitle, onJoin }: PreJoinScreen
     useEffect(() => {
         async function initDevices() {
             try {
-                // Request permissions
+                // Request permissions with mobile-friendly constraints
                 const mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
+                    video: { facingMode: "user" }, // Default to front camera on mobile
                     audio: true,
                 });
 
@@ -51,8 +51,15 @@ export function PreJoinScreen({ meetingId, meetingTitle, onJoin }: PreJoinScreen
                 if (videoRef.current) {
                     videoRef.current.srcObject = mediaStream;
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to access media devices:", error);
+                if (error.name === "NotAllowedError") {
+                    alert("Camera and microphone access denied. Please allow access in your browser settings to join the meeting.");
+                } else if (error.name === "NotFoundError") {
+                    alert("No camera or microphone found. Please connect a device.");
+                } else {
+                    alert(`Failed to access media devices: ${error.message || "Unknown error"}`);
+                }
             } finally {
                 setIsLoading(false);
             }

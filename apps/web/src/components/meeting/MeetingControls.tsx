@@ -50,8 +50,8 @@ export function MeetingControls({
     };
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-            <div className="flex items-center gap-3 p-3 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-[95vw] sm:max-w-fit overflow-x-auto no-scrollbar px-4 sm:px-0">
+            <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl min-w-max mx-auto">
                 {/* Mic */}
                 <ControlButton
                     onClick={toggleMic}
@@ -192,7 +192,7 @@ function ControlButton({ onClick, isActive, activeClass, inactiveClass, children
             <button
                 onClick={onClick}
                 className={clsx(
-                    "p-3 rounded-xl transition-all duration-200 flex items-center justify-center",
+                    "p-2 sm:p-3 rounded-xl transition-all duration-200 flex items-center justify-center touch-manipulation",
                     isActive ? activeClass : inactiveClass
                 )}
                 title={label}

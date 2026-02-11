@@ -140,7 +140,7 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
     return (
         <div className="flex-1 flex flex-col relative overflow-hidden">
             {/* Glass Header */}
-            <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
+            <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
                 <div className="flex items-center gap-4 pointer-events-auto">
                     <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
                         <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,7 +183,7 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
 
             {/* Chat Panel - Slide over */}
             {showChat && (
-                <div className="w-96 bg-gray-900/90 backdrop-blur-xl border-l border-white/10 shadow-2xl z-20 transition-all">
+                <div className="w-full sm:w-96 bg-gray-900/90 backdrop-blur-xl border-l border-white/10 shadow-2xl z-20 transition-all h-full absolute right-0 top-0 bottom-0 pt-16 pb-20 sm:pb-0 sm:pt-0 sm:relative">
                     <Chat />
                 </div>
             )}
