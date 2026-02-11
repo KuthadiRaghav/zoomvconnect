@@ -30,7 +30,7 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            const response = await fetch("/api/proxy/api/v1/auth/register", {
+            const response = await fetch("/api/v1/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, email, password }),

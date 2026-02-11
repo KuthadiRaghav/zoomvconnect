@@ -48,7 +48,7 @@ export default function MeetingPage() {
 
             // If this is a new meeting, create it first
             if (meetingId === "new") {
-                const createRes = await fetch("/api/proxy/api/v1/meetings", {
+                const createRes = await fetch("/api/v1/meetings", {
                     method: "POST",
                     headers,
                     body: JSON.stringify({
@@ -67,7 +67,7 @@ export default function MeetingPage() {
             }
 
             // Now join the meeting
-            const response = await fetch(`/api/proxy/api/v1/meetings/${actualMeetingId}/join`, {
+            const response = await fetch(`/api/v1/meetings/${actualMeetingId}/join`, {
                 method: "POST",
                 headers,
                 body: JSON.stringify({}),

@@ -22,7 +22,7 @@ export default function JoinPage() {
             const headers: HeadersInit = { "Content-Type": "application/json" };
             if (token) headers["Authorization"] = `Bearer ${token}`;
 
-            const res = await fetch(`/api/proxy/api/v1/meetings/lookup?alias=${encodeURIComponent(alias)}`, {
+            const res = await fetch(`/api/v1/meetings/lookup?alias=${encodeURIComponent(alias)}`, {
                 headers,
             });
 

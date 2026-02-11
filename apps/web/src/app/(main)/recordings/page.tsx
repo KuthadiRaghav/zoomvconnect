@@ -32,7 +32,7 @@ export default function RecordingsPage() {
             return;
         }
 
-        fetch("/api/proxy/api/v1/meetings/recordings/list", {
+        fetch("/api/v1/meetings/recordings/list", {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())

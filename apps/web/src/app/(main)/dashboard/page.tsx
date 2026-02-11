@@ -28,7 +28,7 @@ export default function DashboardPage() {
         }
 
         // Fetch user profile
-        fetch("/api/proxy/api/v1/users/me", {
+        fetch("/api/v1/users/me", {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -38,7 +38,7 @@ export default function DashboardPage() {
             .catch(console.error);
 
         // Fetch meetings
-        fetch("/api/proxy/api/v1/meetings", {
+        fetch("/api/v1/meetings", {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((res) => res.json())
@@ -60,7 +60,7 @@ export default function DashboardPage() {
         }
 
         try {
-            const response = await fetch("/api/proxy/api/v1/meetings", {
+            const response = await fetch("/api/v1/meetings", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
