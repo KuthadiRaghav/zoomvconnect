@@ -53,7 +53,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
     return (
         <aside
-            className={`w-64 h-screen fixed left-0 top-0 bg-gray-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6 z-50 transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+            className={`w-64 h-screen fixed left-0 top-0 bg-gray-950/80 backdrop-blur-2xl border-r border-white/5 flex flex-col p-6 z-50 transition-transform duration-300 lg:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
                 }`}
         >
             {/* Logo */}
@@ -71,7 +71,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 {/* Close button for mobile */}
                 <button
                     onClick={onClose}
-                    className="md:hidden p-1 text-gray-400 hover:text-white"
+                    className="lg:hidden p-1 text-gray-400 hover:text-white"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

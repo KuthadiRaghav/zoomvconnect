@@ -15,7 +15,7 @@ export default function DashboardShell({
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+                    className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
@@ -28,10 +28,10 @@ export default function DashboardShell({
 
             {/* Main Content */}
             <main className={`min-h-screen transition-all duration-300 ${isSidebarOpen ? '' : ''
-                } md:pl-64 pl-0`}>
+                } lg:pl-64 pl-0`}>
 
                 {/* Mobile Header */}
-                <header className="md:hidden sticky top-0 z-30 flex items-center justify-between p-4 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+                <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between p-4 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
@@ -48,7 +48,7 @@ export default function DashboardShell({
                     </div>
                 </header>
 
-                <div className="p-4 md:p-0">
+                <div className="p-4 lg:p-0">
                     {children}
                 </div>
             </main>
