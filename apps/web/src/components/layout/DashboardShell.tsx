@@ -31,7 +31,7 @@ export default function DashboardShell({
                 } lg:pl-64 pl-0`}>
 
                 {/* Mobile Header */}
-                <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between p-4 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
+                <header className="lg:hidden sticky top-0 z-[60] flex items-center justify-between p-4 bg-gray-950/80 backdrop-blur-xl border-b border-white/5">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
