@@ -13,10 +13,16 @@ async function bootstrap() {
         crossOriginOpenerPolicy: { policy: "unsafe-none" },
     }));
     // CORS - support multiple origins (comma-separated) & strip trailing slashes
-    const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
-    const allowedOrigins = corsOrigin.split(",").map(o => o.trim().replace(/\/+$/, ""));
+    const defaultOrigins = [
+        "http://localhost:3000",
+        "https://zoomvconnect-web-4hoa-hy2cwisez-techochannel-6309s-projects.vercel.app"
+    ];
+    const corsOrigin = process.env.CORS_ORIGIN;
+    const allowedOrigins = corsOrigin
+        ? corsOrigin.split(",").map(o => o.trim().replace(/\/+$/, ""))
+        : defaultOrigins;
     app.enableCors({
-        origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
+        origin: allowedOrigins,
         credentials: true,
     });
     console.log("[API] CORS allowed origins:", allowedOrigins);

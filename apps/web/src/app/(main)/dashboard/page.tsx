@@ -52,31 +52,8 @@ export default function DashboardPage() {
             });
     }, [router]);
 
-    const handleNewMeeting = async () => {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-            router.push("/login");
-            return;
-        }
-
-        try {
-            const response = await fetch("/api/v1/meetings", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    title: "Instant Meeting",
-                    type: "INSTANT",
-                }),
-            });
-
-            const meeting = await response.json();
-            router.push(`/meeting/${meeting.id}`);
-        } catch (error) {
-            console.error("Failed to create meeting:", error);
-        }
+    const handleNewMeeting = () => {
+        router.push("/meeting/new");
     };
 
     const container = {
@@ -116,8 +93,8 @@ export default function DashboardPage() {
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
             >
                 <motion.div variants={item}>
-                    <button
-                        onClick={handleNewMeeting}
+                    <Link
+                        href="/meeting/new"
                         className="w-full flex flex-col items-start p-6 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl relative overflow-hidden group shadow-lg shadow-blue-900/20 hover:shadow-2xl transition-all"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8" />
@@ -131,7 +108,7 @@ export default function DashboardPage() {
                             <h3 className="text-xl font-bold text-white">New Meeting</h3>
                             <p className="text-blue-100/70 text-sm mt-1">Start instant</p>
                         </div>
-                    </button>
+                    </Link>
                 </motion.div>
 
                 {[

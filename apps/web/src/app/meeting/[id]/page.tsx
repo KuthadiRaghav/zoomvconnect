@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PreJoin from "@/components/meeting/PreJoin";
 import { MeetingRoom } from "@/components/meeting/MeetingRoom";
@@ -24,6 +24,14 @@ export default function MeetingPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mediaSettings, setMediaSettings] = useState({ audio: true, video: true });
+
+    // Eager token check
+    useEffect(() => {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+            router.push("/login");
+        }
+    }, [router]);
 
     const handleJoin = async (settings: { audio: boolean; video: boolean }) => {
         setMediaSettings(settings);
@@ -121,7 +129,7 @@ export default function MeetingPage() {
         return (
             <PreJoin
                 user={{ name: "You" }}
-                meetingTitle={meetingId}
+                meetingTitle={meetingId === "new" ? "Starting New meeting" : `Meeting: ${meetingId}`}
                 onJoin={handleJoin}
                 onCancel={() => router.push("/dashboard")}
             />
