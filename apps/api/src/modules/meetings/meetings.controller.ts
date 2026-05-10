@@ -89,6 +89,18 @@ export class MeetingsController {
         return this.meetingsService.findOne(id, userId);
     }
 
+    @Get(":id/occurrences")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: "List all occurrences in a recurring meeting series" })
+    @ApiResponse({ status: 200, description: "List of occurrences" })
+    async getOccurrences(
+        @Param("id") id: string,
+        @CurrentUser("id") userId: string
+    ) {
+        return this.meetingsService.getOccurrences(id, userId);
+    }
+
     @Patch(":id")
     @UseGuards(JwtAuthGuard)
     @ApiBearerAuth()

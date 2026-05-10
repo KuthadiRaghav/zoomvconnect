@@ -90,38 +90,46 @@ model Meeting {
   id              String        @id @default(cuid())
   title           String
   description     String?
-  
+
   // Scheduling
   scheduledStart  DateTime?
   scheduledEnd    DateTime?
   actualStart     DateTime?
   actualEnd       DateTime?
-  
+
   // Configuration
   type            MeetingType   @default(INSTANT)
   status          MeetingStatus @default(SCHEDULED)
   passcode        String?
   waitingRoom     Boolean       @default(false)
-  
+
+  // Recurrence — stored as JSON: { frequency, interval, count }
+  recurrenceRule  Json?
+
+  // Recurring series linkage
+  parentMeetingId String?
+  parentMeeting   Meeting?      @relation("RecurringSeries", fields: [parentMeetingId], references: [id])
+  childMeetings   Meeting[]     @relation("RecurringSeries")
+
   // Host
   hostId          String
   host            User          @relation("MeetingHost", fields: [hostId], references: [id])
-  
+
   // LiveKit room name
   roomName        String        @unique @default(cuid())
-  
+
   // Participants
   participants    Participant[]
-  
+
   // Recordings
   recordings      Recording[]
-  
+
   // Breakout rooms
   breakoutRooms   BreakoutRoom[]
-  
+
   // Chat messages
   chatMessages    ChatMessage[]
-  
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -129,6 +137,7 @@ model Meeting {
   @@index([status])
   @@index([scheduledStart])
   @@index([roomName])
+  @@index([parentMeetingId])
 }
 
 model Participant {

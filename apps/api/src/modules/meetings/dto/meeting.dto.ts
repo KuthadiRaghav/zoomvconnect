@@ -4,10 +4,35 @@ import {
     IsBoolean,
     IsDateString,
     IsEnum,
+    IsInt,
+    Min,
+    Max,
     MinLength,
     MaxLength,
+    ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
+
+export class RecurrenceRuleDto {
+    @ApiProperty({ enum: ["daily", "weekly", "monthly"] })
+    @IsEnum(["daily", "weekly", "monthly"])
+    frequency!: "daily" | "weekly" | "monthly";
+
+    @ApiPropertyOptional({ default: 1 })
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(30)
+    interval?: number;
+
+    @ApiPropertyOptional({ default: 4 })
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(52)
+    count?: number;
+}
 
 export class CreateMeetingDto {
     @ApiProperty({ example: "Weekly Team Sync" })
@@ -48,6 +73,12 @@ export class CreateMeetingDto {
     @IsOptional()
     @IsBoolean()
     waitingRoom?: boolean;
+
+    @ApiPropertyOptional({ type: RecurrenceRuleDto })
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => RecurrenceRuleDto)
+    recurrenceRule?: RecurrenceRuleDto;
 }
 
 export class UpdateMeetingDto extends PartialType(CreateMeetingDto) { }
