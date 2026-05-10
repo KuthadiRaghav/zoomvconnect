@@ -79,23 +79,18 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
     // For now, simple state or check room metadata if available
 
     const handleToggleRecording = async () => {
-        const token = localStorage.getItem("accessToken");
-        if (!token) return;
-
         try {
             if (isRecording && recordingId) {
-                // Stop recording
                 await fetch(`/api/v1/meetings/${meetingId}/recording/${recordingId}/stop`, {
                     method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include",
                 });
                 setIsRecording(false);
                 setRecordingId(null);
             } else {
-                // Start recording
                 const res = await fetch(`/api/v1/meetings/${meetingId}/recording/start`, {
                     method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include",
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -103,24 +98,20 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                     setRecordingId(data.id);
                 }
             }
-        } catch (error) {
-            console.error("Recording error:", error);
+        } catch {
             alert("Failed to toggle recording");
         }
     };
 
     const handleEndMeeting = async () => {
         if (!confirm("Are you sure you want to end this meeting for everyone?")) return;
-
-        const token = localStorage.getItem("accessToken");
         try {
             await fetch(`/api/v1/meetings/${meetingId}/end`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
+                credentials: "include",
             });
-            // onDisconnected will handle redirect
-        } catch (error) {
-            console.error("Failed to end meeting:", error);
+        } catch {
+            // onDisconnected will still handle redirect
         }
     };
 

@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/store";
 
 export default function RegisterPage() {
     const router = useRouter();
+    const setAuth = useAuthStore((s) => s.setAuth);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -30,23 +32,24 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            const response = await fetch("/api/v1/auth/register", {
+            const res = await fetch("/api/v1/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, email, password }),
+                credentials: "include",
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
+            if (!res.ok) {
+                const data = await res.json();
                 throw new Error(data.message || "Registration failed");
             }
 
-            // Store tokens
-            localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("refreshToken", data.refreshToken);
+            // Fetch user profile — cookies are now set httpOnly by the API
+            const profileRes = await fetch("/api/v1/users/me", { credentials: "include" });
+            if (!profileRes.ok) throw new Error("Registration failed");
+            const user = await profileRes.json();
+            setAuth(user);
 
-            // Redirect to dashboard
             router.push("/dashboard");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Registration failed");

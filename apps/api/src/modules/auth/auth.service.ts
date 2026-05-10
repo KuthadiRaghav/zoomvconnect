@@ -66,7 +66,10 @@ export class AuthService {
         return this.generateTokens(user.id, user.email);
     }
 
-    async refreshTokens(refreshToken: string): Promise<TokenResponseDto> {
+    async refreshTokens(refreshToken: string | undefined): Promise<TokenResponseDto> {
+        if (!refreshToken) {
+            throw new UnauthorizedException("No refresh token provided");
+        }
         try {
             const payload = this.jwtService.verify(refreshToken, {
                 secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
@@ -91,13 +94,14 @@ export class AuthService {
         }
     }
 
-    async logout(userId: string, refreshToken: string): Promise<void> {
-        // Blacklist the refresh token
-        await this.redis.set(
-            `blacklist:${refreshToken}`,
-            "1",
-            7 * 24 * 60 * 60 // 7 days
-        );
+    async logout(userId: string, refreshToken?: string): Promise<void> {
+        if (refreshToken) {
+            await this.redis.set(
+                `blacklist:${refreshToken}`,
+                "1",
+                7 * 24 * 60 * 60
+            );
+        }
     }
 
     async validateUser(userId: string): Promise<any> {

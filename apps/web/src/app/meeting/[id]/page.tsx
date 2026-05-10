@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PreJoin from "@/components/meeting/PreJoin";
 import { MeetingRoom } from "@/components/meeting/MeetingRoom";
+import { useAuthStore } from "@/lib/store";
 
 interface JoinCredentials {
     token: string;
@@ -18,6 +19,7 @@ export default function MeetingPage() {
     const params = useParams();
     const router = useRouter();
     const meetingId = params.id as string;
+    const { isAuthenticated } = useAuthStore();
 
     const [isJoined, setIsJoined] = useState(false);
     const [credentials, setCredentials] = useState<JoinCredentials | null>(null);
@@ -25,13 +27,11 @@ export default function MeetingPage() {
     const [error, setError] = useState<string | null>(null);
     const [mediaSettings, setMediaSettings] = useState({ audio: true, video: true });
 
-    // Eager token check
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
+        if (!isAuthenticated) {
             router.push("/login");
         }
-    }, [router]);
+    }, [isAuthenticated, router]);
 
     const handleJoin = async (settings: { audio: boolean; video: boolean }) => {
         setMediaSettings(settings);
@@ -39,19 +39,12 @@ export default function MeetingPage() {
         setError(null);
 
         try {
-            const token = localStorage.getItem("accessToken");
-
-            // Require login for creating/joining meetings
-            if (!token) {
-                router.push(`/login`);
+            if (!isAuthenticated) {
+                router.push("/login");
                 return;
             }
 
-            const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-            };
-
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
             let actualMeetingId = meetingId;
 
             // If this is a new meeting, create it first
@@ -59,10 +52,8 @@ export default function MeetingPage() {
                 const createRes = await fetch("/api/v1/meetings", {
                     method: "POST",
                     headers,
-                    body: JSON.stringify({
-                        title: "Instant Meeting",
-                        type: "INSTANT",
-                    }),
+                    credentials: "include",
+                    body: JSON.stringify({ title: "Instant Meeting", type: "INSTANT" }),
                 });
 
                 if (!createRes.ok) {
@@ -78,6 +69,7 @@ export default function MeetingPage() {
             const response = await fetch(`/api/v1/meetings/${actualMeetingId}/join`, {
                 method: "POST",
                 headers,
+                credentials: "include",
                 body: JSON.stringify({}),
             });
 

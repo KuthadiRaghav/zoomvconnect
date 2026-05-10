@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/store";
 
 export default function LoginPage() {
     const router = useRouter();
+    const setAuth = useAuthStore((s) => s.setAuth);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -17,23 +19,19 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            const response = await fetch("/api/v1/auth/login", {
+            await fetch("/api/v1/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
+                credentials: "include",
             });
 
-            const data = await response.json();
+            // Fetch user profile — cookies are now set httpOnly by the API
+            const profileRes = await fetch("/api/v1/users/me", { credentials: "include" });
+            if (!profileRes.ok) throw new Error("Login failed");
+            const user = await profileRes.json();
+            setAuth(user);
 
-            if (!response.ok) {
-                throw new Error(data.message || "Login failed");
-            }
-
-            // Store tokens
-            localStorage.setItem("accessToken", data.accessToken);
-            localStorage.setItem("refreshToken", data.refreshToken);
-
-            // Redirect to dashboard or home
             router.push("/dashboard");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Login failed");

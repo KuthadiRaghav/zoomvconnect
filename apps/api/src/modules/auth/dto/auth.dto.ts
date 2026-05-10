@@ -32,12 +32,6 @@ export class LoginDto {
     password!: string;
 }
 
-export class RefreshTokenDto {
-    @ApiProperty()
-    @IsString()
-    refreshToken!: string;
-}
-
 export class TokenResponseDto {
     @ApiProperty()
     accessToken!: string;

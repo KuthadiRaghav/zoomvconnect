@@ -2,10 +2,13 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, VersioningType } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import helmet from "helmet";
+import * as cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
+
+    app.use(cookieParser());
 
     // Security - configure helmet for cross-origin API access
     app.use(helmet({
@@ -66,7 +69,6 @@ async function bootstrap() {
 
     console.log(`🚀 API running on http://localhost:${port}`);
     console.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
-    console.log(`🔑 LiveKit API Key: ${process.env.LIVEKIT_API_KEY}`);
 }
 
 bootstrap();

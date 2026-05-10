@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/store";
 
 const SidebarItem = ({
     href,
@@ -41,13 +42,13 @@ interface SidebarProps {
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
+    const { logout: clearAuthStore } = useAuthStore();
 
     const isActive = (path: string) => pathname === path;
 
-    const handleLogout = () => {
-        // ... logout logic ...
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+    const handleLogout = async () => {
+        await fetch("/api/v1/auth/logout", { method: "POST", credentials: "include" });
+        clearAuthStore();
         router.push("/login");
     };
 

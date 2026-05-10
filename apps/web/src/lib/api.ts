@@ -1,9 +1,10 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+// All requests use the Next.js rewrite proxy (/api → backend) so cookies are
+// sent automatically by the browser — no Authorization header needed.
+const API_BASE = "/api/v1";
 
 interface ApiOptions {
     method?: string;
     body?: unknown;
-    token?: string;
 }
 
 class ApiError extends Error {
@@ -18,22 +19,33 @@ class ApiError extends Error {
 }
 
 async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
-    const { method = "GET", body, token } = options;
+    const { method = "GET", body } = options;
 
-    const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-    };
-
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
         method,
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,
         credentials: "include",
     });
+
+    // Attempt silent token refresh on 401 (once), then retry
+    if (response.status === 401 && endpoint !== "/auth/refresh" && endpoint !== "/auth/login") {
+        const refreshed = await fetch(`${API_BASE}/auth/refresh`, {
+            method: "POST",
+            credentials: "include",
+        });
+        if (refreshed.ok) {
+            const retry = await fetch(`${API_BASE}${endpoint}`, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: body ? JSON.stringify(body) : undefined,
+                credentials: "include",
+            });
+            if (retry.ok) {
+                return retry.json() as Promise<T>;
+            }
+        }
+    }
 
     const data = await response.json();
 
@@ -41,7 +53,7 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
         throw new ApiError(
             response.status,
             data.error?.code || "UNKNOWN",
-            data.error?.message || "An error occurred"
+            data.error?.message || data.message || "An error occurred"
         );
     }
 
@@ -51,138 +63,95 @@ async function request<T>(endpoint: string, options: ApiOptions = {}): Promise<T
 // Auth
 export const authApi = {
     login: (email: string, password: string) =>
-        request<{ accessToken: string; refreshToken: string }>("/auth/login", {
+        request<{ message: string }>("/auth/login", {
             method: "POST",
             body: { email, password },
         }),
 
     register: (email: string, password: string, name: string) =>
-        request<{ accessToken: string; refreshToken: string }>("/auth/register", {
+        request<{ message: string }>("/auth/register", {
             method: "POST",
             body: { email, password, name },
         }),
 
-    refresh: (refreshToken: string) =>
-        request<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
-            method: "POST",
-            body: { refreshToken },
-        }),
+    refresh: () =>
+        request<{ message: string }>("/auth/refresh", { method: "POST" }),
 
-    logout: (refreshToken: string, token: string) =>
-        request<void>("/auth/logout", {
-            method: "POST",
-            body: { refreshToken },
-            token,
-        }),
+    logout: () =>
+        request<void>("/auth/logout", { method: "POST" }),
 };
 
 // Meetings
 export const meetingsApi = {
-    list: (token: string, params?: { status?: string; page?: number }) =>
+    list: (params?: { status?: string; page?: number }) =>
         request<{
             items: Meeting[];
             total: number;
             page: number;
             hasMore: boolean;
-        }>(`/meetings${params ? `?${new URLSearchParams(params as any)}` : ""}`, {
-            token,
-        }),
+        }>(`/meetings${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ""}`),
 
-    get: (id: string, token: string) =>
-        request<Meeting>(`/meetings/${id}`, { token }),
+    get: (id: string) =>
+        request<Meeting>(`/meetings/${id}`),
 
-    create: (data: CreateMeetingData, token: string) =>
-        request<Meeting>("/meetings", {
-            method: "POST",
-            body: data,
-            token,
-        }),
+    create: (data: CreateMeetingData) =>
+        request<Meeting>("/meetings", { method: "POST", body: data }),
 
-    update: (id: string, data: Partial<CreateMeetingData>, token: string) =>
-        request<Meeting>(`/meetings/${id}`, {
-            method: "PATCH",
-            body: data,
-            token,
-        }),
+    update: (id: string, data: Partial<CreateMeetingData>) =>
+        request<Meeting>(`/meetings/${id}`, { method: "PATCH", body: data }),
 
-    delete: (id: string, token: string) =>
-        request<void>(`/meetings/${id}`, {
-            method: "DELETE",
-            token,
-        }),
+    delete: (id: string) =>
+        request<void>(`/meetings/${id}`, { method: "DELETE" }),
 
-    join: (id: string, passcode?: string, token?: string) =>
+    join: (id: string, passcode?: string) =>
         request<JoinResponse>(`/meetings/${id}/join`, {
             method: "POST",
             body: { passcode },
-            token,
         }),
 
-    end: (id: string, token: string) =>
-        request<void>(`/meetings/${id}/end`, {
-            method: "POST",
-            token,
-        }),
+    end: (id: string) =>
+        request<void>(`/meetings/${id}/end`, { method: "POST" }),
 
-    startRecording: (id: string, token: string) =>
-        request<{ id: string }>(`/meetings/${id}/recording/start`, {
-            method: "POST",
-            token,
-        }),
+    startRecording: (id: string) =>
+        request<{ id: string }>(`/meetings/${id}/recording/start`, { method: "POST" }),
 
-    stopRecording: (id: string, recordingId: string, token: string) =>
-        request<void>(`/meetings/${id}/recording/${recordingId}/stop`, {
-            method: "POST",
-            token,
-        }),
+    stopRecording: (id: string, recordingId: string) =>
+        request<void>(`/meetings/${id}/recording/${recordingId}/stop`, { method: "POST" }),
 };
 
 // Recordings
 export const recordingsApi = {
-    list: (token: string, params?: { page?: number }) =>
+    list: (params?: { page?: number }) =>
         request<{
             items: Recording[];
             total: number;
             page: number;
             hasMore: boolean;
-        }>(`/recordings${params ? `?${new URLSearchParams(params as any)}` : ""}`, {
-            token,
-        }),
+        }>(`/recordings${params ? `?${new URLSearchParams(params as Record<string, string>)}` : ""}`),
 
-    get: (id: string, token: string) =>
-        request<Recording>(`/recordings/${id}`, { token }),
+    get: (id: string) =>
+        request<Recording>(`/recordings/${id}`),
 
-    delete: (id: string, token: string) =>
-        request<void>(`/recordings/${id}`, {
-            method: "DELETE",
-            token,
-        }),
+    delete: (id: string) =>
+        request<void>(`/recordings/${id}`, { method: "DELETE" }),
 
-    getTranscript: (id: string, token: string) =>
-        request<Transcript>(`/recordings/${id}/transcript`, { token }),
+    getTranscript: (id: string) =>
+        request<Transcript>(`/recordings/${id}/transcript`),
 };
 
 // Users
 export const usersApi = {
-    getProfile: (token: string) =>
-        request<User>("/users/me", { token }),
+    getProfile: () =>
+        request<User>("/users/me"),
 
-    updateProfile: (data: { name?: string; avatarUrl?: string }, token: string) =>
-        request<User>("/users/me", {
-            method: "PATCH",
-            body: data,
-            token,
-        }),
+    updateProfile: (data: { name?: string; avatarUrl?: string }) =>
+        request<User>("/users/me", { method: "PATCH", body: data }),
 
-    getSettings: (token: string) =>
-        request<UserSettings>("/users/me/settings", { token }),
+    getSettings: () =>
+        request<UserSettings>("/users/me/settings"),
 
-    updateSettings: (data: Partial<UserSettings>, token: string) =>
-        request<UserSettings>("/users/me/settings", {
-            method: "PATCH",
-            body: data,
-            token,
-        }),
+    updateSettings: (data: Partial<UserSettings>) =>
+        request<UserSettings>("/users/me/settings", { method: "PATCH", body: data }),
 };
 
 // Types
