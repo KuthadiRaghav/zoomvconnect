@@ -17,6 +17,7 @@ import {
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import { MeetingControls } from "./MeetingControls";
+import { PollPanel } from "./PollPanel";
 
 interface MeetingRoomProps {
     token: string;
@@ -68,6 +69,7 @@ export function MeetingRoom({
 function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string; meetingTitle: string; onLeave: () => void }) {
     const { localParticipant } = useLocalParticipant();
     const [showChat, setShowChat] = useState(false);
+    const [showPolls, setShowPolls] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingId, setRecordingId] = useState<string | null>(null);
 
@@ -179,6 +181,14 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 </div>
             )}
 
+            {/* Polls Panel */}
+            <PollPanel
+                meetingId={meetingId}
+                isHost={isHost}
+                isOpen={showPolls}
+                onClose={() => setShowPolls(false)}
+            />
+
             {/* Controls */}
             <MeetingControls
                 onLeave={onLeave}
@@ -188,6 +198,8 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 isRecording={isRecording}
                 onToggleRecording={handleToggleRecording}
                 isHost={isHost}
+                onTogglePolls={() => setShowPolls(!showPolls)}
+                isPollsOpen={showPolls}
             />
 
             {/* Audio */}

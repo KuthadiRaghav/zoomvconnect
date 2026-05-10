@@ -8,6 +8,7 @@ import { MeetingsModule } from "./modules/meetings/meetings.module";
 import { RecordingsModule } from "./modules/recordings/recordings.module";
 import { UsersModule } from "./modules/users/users.module";
 import { LivekitModule } from "./modules/livekit/livekit.module";
+import { PollsModule } from "./modules/polls/polls.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
 
@@ -67,6 +68,7 @@ import { RedisModule } from "./redis/redis.module";
         MeetingsModule,
         RecordingsModule,
         UsersModule,
+        PollsModule,
     ],
     providers: [
         { provide: APP_GUARD, useClass: ThrottlerGuard },
