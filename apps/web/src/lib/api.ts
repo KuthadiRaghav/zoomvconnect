@@ -117,6 +117,9 @@ export const meetingsApi = {
 
     stopRecording: (id: string, recordingId: string) =>
         request<void>(`/meetings/${id}/recording/${recordingId}/stop`, { method: "POST" }),
+
+    getOccurrences: (id: string) =>
+        request<MeetingOccurrence[]>(`/meetings/${id}/occurrences`),
 };
 
 // Recordings
@@ -169,6 +172,12 @@ interface Meeting {
     roomName: string;
 }
 
+interface RecurrenceRule {
+    frequency: "daily" | "weekly" | "monthly";
+    interval?: number;
+    count?: number;
+}
+
 interface CreateMeetingData {
     title: string;
     description?: string;
@@ -177,7 +186,19 @@ interface CreateMeetingData {
     type?: string;
     passcode?: string;
     waitingRoom?: boolean;
+    recurrenceRule?: RecurrenceRule;
 }
+
+interface MeetingOccurrence {
+    id: string;
+    title: string;
+    scheduledStart: string | null;
+    scheduledEnd: string | null;
+    status: string;
+    roomName: string;
+}
+
+export type { Meeting, RecurrenceRule, MeetingOccurrence };
 
 interface JoinResponse {
     meeting: { id: string; title: string; roomName: string };

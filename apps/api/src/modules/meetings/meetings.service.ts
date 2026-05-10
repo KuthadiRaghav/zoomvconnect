@@ -47,6 +47,7 @@ export class MeetingsService {
     async create(userId: string, dto: CreateMeetingDto) {
         const roomName = generateRoomName();
         const passcode = dto.passcode || (dto.waitingRoom ? generatePasscode() : null);
+        const isRecurring = dto.type === "RECURRING" && dto.recurrenceRule && dto.scheduledStart;
 
         const meeting = await this.prisma.meeting.create({
             data: {
@@ -57,6 +58,7 @@ export class MeetingsService {
                 type: dto.type || "INSTANT",
                 passcode,
                 waitingRoom: dto.waitingRoom || false,
+                recurrenceRule: isRecurring ? (dto.recurrenceRule as object) : undefined,
                 hostId: userId,
                 roomName,
                 participants: {
@@ -70,6 +72,7 @@ export class MeetingsService {
                 host: {
                     select: { id: true, name: true, email: true, avatarUrl: true },
                 },
+                childMeetings: true,
             },
         });
 
@@ -81,7 +84,57 @@ export class MeetingsService {
             });
         }
 
+        // Generate child occurrences for recurring meetings
+        if (isRecurring && dto.recurrenceRule && dto.scheduledStart) {
+            await this.createRecurringInstances(meeting.id, userId, dto);
+        }
+
         return meeting;
+    }
+
+    private async createRecurringInstances(
+        parentId: string,
+        userId: string,
+        dto: CreateMeetingDto,
+    ) {
+        const rule = dto.recurrenceRule!;
+        const frequency = rule.frequency;
+        const interval = rule.interval ?? 1;
+        const count = rule.count ?? 4;
+
+        const baseStart = new Date(dto.scheduledStart!);
+        const duration =
+            dto.scheduledEnd
+                ? new Date(dto.scheduledEnd).getTime() - baseStart.getTime()
+                : 60 * 60 * 1000; // default 1 hour
+
+        const instances = [];
+        for (let i = 1; i < count; i++) {
+            const start = new Date(baseStart);
+            if (frequency === "daily") start.setDate(start.getDate() + i * interval);
+            else if (frequency === "weekly") start.setDate(start.getDate() + i * interval * 7);
+            else if (frequency === "monthly") start.setMonth(start.getMonth() + i * interval);
+
+            const end = new Date(start.getTime() + duration);
+
+            instances.push({
+                title: dto.title,
+                description: dto.description,
+                scheduledStart: start,
+                scheduledEnd: end,
+                type: "RECURRING" as const,
+                passcode: dto.passcode,
+                waitingRoom: dto.waitingRoom || false,
+                hostId: userId,
+                roomName: generateRoomName(),
+                parentMeetingId: parentId,
+                participants: {
+                    create: { userId, role: "HOST" as const },
+                },
+            });
+        }
+
+        await Promise.all(instances.map((data) => this.prisma.meeting.create({ data })));
     }
 
     async findAll(userId: string, options: { status?: string; page?: number; limit?: number } = {}) {
@@ -134,17 +187,53 @@ export class MeetingsService {
                 id: true,
                 title: true,
                 roomName: true,
+                passcode: true,
                 host: {
-                    select: { name: true }
-                }
-            }
+                    select: { name: true },
+                },
+            },
         });
 
         if (!meeting) {
             throw new NotFoundException("Meeting not found");
         }
 
-        return meeting;
+        return {
+            id: meeting.id,
+            title: meeting.title,
+            roomName: meeting.roomName,
+            host: meeting.host,
+            requiresPasscode: !!meeting.passcode,
+        };
+    }
+
+    async getOccurrences(id: string, userId: string) {
+        const meeting = await this.prisma.meeting.findUnique({
+            where: { id },
+            select: { id: true, parentMeetingId: true, type: true, hostId: true },
+        });
+
+        if (!meeting) throw new NotFoundException("Meeting not found");
+
+        // Resolve series root
+        const rootId = meeting.parentMeetingId ?? meeting.id;
+
+        const occurrences = await this.prisma.meeting.findMany({
+            where: {
+                OR: [{ id: rootId }, { parentMeetingId: rootId }],
+            },
+            select: {
+                id: true,
+                title: true,
+                scheduledStart: true,
+                scheduledEnd: true,
+                status: true,
+                roomName: true,
+            },
+            orderBy: { scheduledStart: "asc" },
+        });
+
+        return occurrences;
     }
 
     async getRecordings(userId: string) {
