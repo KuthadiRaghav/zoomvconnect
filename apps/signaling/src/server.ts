@@ -21,7 +21,13 @@ interface AuthenticatedSocket extends WebSocket {
 
 interface IncomingMessage {
     type: string;
-    payload: any;
+    payload: Record<string, unknown>;
+}
+
+interface WsMessage {
+    type: string;
+    payload: unknown;
+    timestamp: number;
 }
 
 export class SignalingServer {
@@ -48,7 +54,7 @@ export class SignalingServer {
         const isLocalhost = config.redisUrl.includes("localhost") || config.redisUrl.includes("127.0.0.1");
         const needsTls = config.redisUrl.startsWith("rediss://") || !isLocalhost;
 
-        const redisOptions: any = {
+        const redisOptions: Record<string, unknown> = {
             family: 4,
             ...(needsTls ? { tls: { rejectUnauthorized: false } } : {}),
         };
@@ -303,9 +309,9 @@ export class SignalingServer {
         }
     }
 
-    private send(ws: WebSocket, type: string, payload: any) {
+    private send(ws: WebSocket, type: string, payload: unknown) {
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type, payload, timestamp: Date.now() }));
+            ws.send(JSON.stringify({ type, payload, timestamp: Date.now() } satisfies WsMessage));
         }
     }
 
@@ -313,7 +319,7 @@ export class SignalingServer {
         this.send(ws, WS_EVENTS.ERROR, { code, message });
     }
 
-    private async broadcastToRoom(roomId: string, message: any, excludeParticipantId?: string) {
+    private async broadcastToRoom(roomId: string, message: WsMessage, excludeParticipantId?: string) {
         // Publish to Redis for multi-server support
         await this.redis.publish(`room:${roomId}`, JSON.stringify(message));
 
@@ -330,7 +336,7 @@ export class SignalingServer {
         });
     }
 
-    private async sendToParticipant(roomId: string, participantId: string, message: any) {
+    private async sendToParticipant(roomId: string, participantId: string, message: WsMessage) {
         this.wss.clients.forEach((ws) => {
             const client = ws as AuthenticatedSocket;
             if (

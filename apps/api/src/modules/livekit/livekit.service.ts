@@ -6,6 +6,8 @@ import {
     EgressClient,
     VideoGrant,
     DataPacket_Kind,
+    type EgressInfo,
+    type EncodedFileOutput,
 } from "livekit-server-sdk";
 
 @Injectable()
@@ -161,14 +163,14 @@ export class LivekitService {
     /**
      * Start room recording (composite egress)
      */
-    async startRecording(roomName: string): Promise<any> {
+    async startRecording(roomName: string): Promise<EgressInfo | null> {
         try {
-            const egress = await this.egressClient.startRoomCompositeEgress(
-                roomName,
-                {
-                    filepath: `/tmp/recordings/${roomName}-${Date.now()}.mp4`,
-                } as any
-            );
+            // Protobuf-generated EncodedFileOutput has many internal fields; cast through
+            // unknown rather than any so the return type stays strongly typed.
+            const output = {
+                filepath: `/tmp/recordings/${roomName}-${Date.now()}.mp4`,
+            } as unknown as EncodedFileOutput;
+            const egress = await this.egressClient.startRoomCompositeEgress(roomName, output);
             return egress;
         } catch (error) {
             this.logger.error(`Failed to start recording: ${(error as Error).message}`);
@@ -186,8 +188,8 @@ export class LivekitService {
     /**
      * List active egress operations
      */
-    async listEgress(roomName?: string): Promise<any[]> {
-        return this.egressClient.listEgress({ roomName }) as any;
+    async listEgress(roomName?: string): Promise<EgressInfo[]> {
+        return this.egressClient.listEgress({ roomName });
     }
 
     /**
