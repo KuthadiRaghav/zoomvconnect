@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { StorageService } from "../../storage/storage.service";
 
 @Injectable()
 export class RecordingsService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private storage: StorageService,
+    ) { }
 
     async findAll(userId: string, options: { page?: number; limit?: number } = {}) {
         const { page = 1, limit = 20 } = options;
@@ -92,9 +96,13 @@ export class RecordingsService {
             throw new ForbiddenException("Only the host can delete recordings");
         }
 
-        await this.prisma.recording.delete({ where: { id } });
+        // Delete files from object storage before removing the DB record
+        await Promise.all([
+            recording.videoUrl ? this.storage.deleteObject(recording.videoUrl) : Promise.resolve(),
+            recording.audioUrl ? this.storage.deleteObject(recording.audioUrl) : Promise.resolve(),
+        ]);
 
-        // TODO: Delete from object storage
+        await this.prisma.recording.delete({ where: { id } });
     }
 
     async getTranscript(id: string, userId: string) {
