@@ -1,51 +1,48 @@
-import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { Injectable, OnModuleDestroy, OnApplicationBootstrap, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import Redis from "ioredis";
 
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService implements OnApplicationBootstrap, OnModuleDestroy {
     private readonly client: Redis;
     private readonly subscriber: Redis;
     private readonly publisher: Redis;
+    private readonly logger = new Logger(RedisService.name);
 
     constructor(private configService: ConfigService) {
         const redisUrl = this.configService.get<string>("REDIS_URL", "redis://localhost:6379");
 
-        // Upstash (and most cloud Redis) requires TLS
         const isLocalhost = redisUrl.includes("localhost") || redisUrl.includes("127.0.0.1");
         const needsTls = redisUrl.startsWith("rediss://") || !isLocalhost;
 
-        const redisOpts: any = {
+        const redisOpts: Record<string, unknown> = {
             maxRetriesPerRequest: 3,
             lazyConnect: true,
-            family: 4, // Force IPv4
+            family: 4,
             ...(needsTls ? { tls: { rejectUnauthorized: false } } : {}),
         };
 
-        // If URL starts with rediss://, convert to redis:// since we handle TLS via options
         const cleanUrl = redisUrl.replace(/^rediss:\/\//, "redis://");
-
-        console.log(`[API] Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} with TLS: ${needsTls}`);
 
         this.client = new Redis(cleanUrl, redisOpts);
         this.subscriber = new Redis(cleanUrl, redisOpts);
         this.publisher = new Redis(cleanUrl, redisOpts);
 
-        // Attach error handlers to prevent unhandled error crashes
+        const names = ["client", "subscriber", "publisher"] as const;
         [this.client, this.subscriber, this.publisher].forEach((conn, i) => {
-            const names = ["client", "subscriber", "publisher"];
-            conn.on("error", (err) => {
-                console.error(`[API] Redis ${names[i]} error:`, err.message);
-            });
-            conn.on("connect", () => {
-                console.log(`[API] Redis ${names[i]} connected successfully`);
-            });
+            conn.on("error", (err) => this.logger.error(`Redis ${names[i]} error: ${err.message}`));
+            conn.on("ready", () => this.logger.log(`Redis ${names[i]} ready`));
         });
+    }
 
-        // Connect asynchronously — don't block app startup
-        this.client.connect().catch(() => { });
-        this.subscriber.connect().catch(() => { });
-        this.publisher.connect().catch(() => { });
+    async onApplicationBootstrap() {
+        // Block app startup until all three connections are ready.
+        // This prevents 401 / 500 errors on the very first requests after deploy.
+        await Promise.all([
+            this.client.connect(),
+            this.subscriber.connect(),
+            this.publisher.connect(),
+        ]);
     }
 
     async onModuleDestroy() {
