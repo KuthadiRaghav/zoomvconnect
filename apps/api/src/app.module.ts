@@ -34,6 +34,7 @@ import { RedisModule } from "./redis/redis.module";
                 S3_SECRET_KEY: Joi.string().required(),
                 S3_BUCKET: Joi.string().default("zoomvconnect-recordings"),
                 CORS_ORIGIN: Joi.string().optional(),
+                ANTHROPIC_API_KEY: Joi.string().optional(),
             }),
             validationOptions: { abortEarly: false },
         }),

@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../../storage/storage.service";
+import { AiSummaryService } from "./ai-summary.service";
 
 @Injectable()
 export class RecordingsService {
     constructor(
         private prisma: PrismaService,
         private storage: StorageService,
+        private aiSummary: AiSummaryService,
     ) { }
 
     async findAll(userId: string, options: { page?: number; limit?: number } = {}) {
@@ -113,5 +115,33 @@ export class RecordingsService {
         }
 
         return recording.transcript;
+    }
+
+    async summarize(id: string, userId: string) {
+        const recording = await this.findOne(id, userId);
+
+        if (!recording.transcript) {
+            throw new NotFoundException("No transcript found for this recording");
+        }
+
+        const segments = recording.transcript.segments as {
+            start: number;
+            end: number;
+            speaker?: string;
+            text: string;
+        }[];
+
+        const result = await this.aiSummary.generateSummary(segments, recording.meeting.title);
+
+        const updated = await this.prisma.transcript.update({
+            where: { id: recording.transcript.id },
+            data: {
+                summary: result.summary,
+                actionItems: result.actionItems,
+                keywords: result.keywords,
+            },
+        });
+
+        return updated;
     }
 }
