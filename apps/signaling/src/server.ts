@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import Redis from "ioredis";
 import { WS_EVENTS } from "@zoomvconnect/shared";
 import { RoomManager } from "./room-manager";
+import { createLogger } from "./logger";
 
 interface ServerConfig {
     port: number;
@@ -20,10 +21,17 @@ interface AuthenticatedSocket extends WebSocket {
 
 interface IncomingMessage {
     type: string;
-    payload: any;
+    payload: Record<string, unknown>;
+}
+
+interface WsMessage {
+    type: string;
+    payload: unknown;
+    timestamp: number;
 }
 
 export class SignalingServer {
+    private readonly logger = createLogger("SignalingServer");
     private wss: WebSocketServer;
     private httpServer: Server;
     private redis: Redis;
@@ -46,7 +54,7 @@ export class SignalingServer {
         const isLocalhost = config.redisUrl.includes("localhost") || config.redisUrl.includes("127.0.0.1");
         const needsTls = config.redisUrl.startsWith("rediss://") || !isLocalhost;
 
-        const redisOptions: any = {
+        const redisOptions: Record<string, unknown> = {
             family: 4,
             ...(needsTls ? { tls: { rejectUnauthorized: false } } : {}),
         };
@@ -54,16 +62,15 @@ export class SignalingServer {
         // If URL starts with rediss://, convert to redis:// since we handle TLS via options
         const cleanUrl = config.redisUrl.replace(/^rediss:\/\//, "redis://");
 
-        console.log(`[Signaling] Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} with TLS: ${needsTls}`);
+        this.logger.info(`Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} (TLS: ${needsTls})`);
 
         this.redis = new Redis(cleanUrl, redisOptions);
         this.subscriber = new Redis(cleanUrl, redisOptions);
 
-        // Attach error handlers to prevent unhandled error crashes
-        this.redis.on("error", (err) => console.error("[Signaling] Redis error:", err.message));
-        this.redis.on("connect", () => console.log("[Signaling] Redis connected successfully"));
-        this.subscriber.on("error", (err) => console.error("[Signaling] Redis subscriber error:", err.message));
-        this.subscriber.on("connect", () => console.log("[Signaling] Redis subscriber connected successfully"));
+        this.redis.on("error", (err) => this.logger.error(`Redis error: ${err.message}`));
+        this.redis.on("ready", () => this.logger.info("Redis ready"));
+        this.subscriber.on("error", (err) => this.logger.error(`Redis subscriber error: ${err.message}`));
+        this.subscriber.on("ready", () => this.logger.info("Redis subscriber ready"));
 
         this.roomManager = new RoomManager(this.redis);
 
@@ -302,9 +309,9 @@ export class SignalingServer {
         }
     }
 
-    private send(ws: WebSocket, type: string, payload: any) {
+    private send(ws: WebSocket, type: string, payload: unknown) {
         if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type, payload, timestamp: Date.now() }));
+            ws.send(JSON.stringify({ type, payload, timestamp: Date.now() } satisfies WsMessage));
         }
     }
 
@@ -312,7 +319,7 @@ export class SignalingServer {
         this.send(ws, WS_EVENTS.ERROR, { code, message });
     }
 
-    private async broadcastToRoom(roomId: string, message: any, excludeParticipantId?: string) {
+    private async broadcastToRoom(roomId: string, message: WsMessage, excludeParticipantId?: string) {
         // Publish to Redis for multi-server support
         await this.redis.publish(`room:${roomId}`, JSON.stringify(message));
 
@@ -329,7 +336,7 @@ export class SignalingServer {
         });
     }
 
-    private async sendToParticipant(roomId: string, participantId: string, message: any) {
+    private async sendToParticipant(roomId: string, participantId: string, message: WsMessage) {
         this.wss.clients.forEach((ws) => {
             const client = ws as AuthenticatedSocket;
             if (

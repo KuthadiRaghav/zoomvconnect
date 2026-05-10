@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useAuthStore } from "@/lib/store";
 
 interface Recording {
     id: string;
@@ -20,31 +21,29 @@ interface Recording {
 
 export default function RecordingsPage() {
     const router = useRouter();
+    const { isAuthenticated } = useAuthStore();
     const [recordings, setRecordings] = useState<Recording[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
+        if (!isAuthenticated) {
             router.push("/login");
             return;
         }
 
-        fetch("/api/v1/meetings/recordings/list", {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => res.json())
+        fetch("/api/v1/meetings/recordings/list", { credentials: "include" })
+            .then((res) => {
+                if (res.status === 401) { router.push("/login"); return null; }
+                return res.json();
+            })
             .then((data) => {
-                setRecordings(data);
+                if (data) setRecordings(data);
                 setIsLoading(false);
             })
-            .catch((err) => {
-                console.error(err);
-                setIsLoading(false);
-            });
-    }, [router]);
+            .catch(() => setIsLoading(false));
+    }, [isAuthenticated, router]);
 
     const filteredRecordings = useMemo(() => {
         return recordings

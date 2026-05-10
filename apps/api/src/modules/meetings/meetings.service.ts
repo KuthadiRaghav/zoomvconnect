@@ -3,6 +3,7 @@ import {
     NotFoundException,
     ForbiddenException,
     BadRequestException,
+    Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
@@ -35,6 +36,8 @@ function generateRoomName(): string {
 
 @Injectable()
 export class MeetingsService {
+    private readonly logger = new Logger(MeetingsService.name);
+
     constructor(
         private prisma: PrismaService,
         private redis: RedisService,
@@ -91,7 +94,7 @@ export class MeetingsService {
                 { hostId: userId },
                 { participants: { some: { userId } } },
             ],
-            ...(status && { status: status as any }),
+            ...(status && { status: status as "SCHEDULED" | "WAITING" | "IN_PROGRESS" | "ENDED" | "CANCELLED" }),
         };
 
         const [meetings, total] = await Promise.all([
@@ -258,36 +261,35 @@ export class MeetingsService {
             throw new ForbiddenException("Invalid passcode");
         }
 
-        // Get or create participant
-        let participant;
+        // Get or create participant — resolve name/identity in each branch to keep types clean
+        let participantId: string;
+        let participantName: string;
+        let participantIdentity: string;
+        let participantRole: string;
+
         if (userId) {
-            participant = await this.prisma.participant.upsert({
-                where: {
-                    meetingId_userId: { meetingId: id, userId },
-                },
+            const p = await this.prisma.participant.upsert({
+                where: { meetingId_userId: { meetingId: id, userId } },
                 create: {
                     meetingId: id,
                     userId,
                     role: meeting.hostId === userId ? "HOST" : "ATTENDEE",
                     joinedAt: new Date(),
                 },
-                update: {
-                    joinedAt: new Date(),
-                    leftAt: null,
-                },
+                update: { joinedAt: new Date(), leftAt: null },
                 include: {
-                    user: {
-                        select: { id: true, name: true, email: true, avatarUrl: true },
-                    },
+                    user: { select: { id: true, name: true, email: true, avatarUrl: true } },
                 },
             });
+            participantId = p.id;
+            participantName = p.user?.name ?? "User";
+            participantIdentity = p.userId ?? p.id;
+            participantRole = p.role;
         } else {
-            // Guest participant
             if (!dto.guestName) {
                 throw new BadRequestException("Guest name is required");
             }
-
-            participant = await this.prisma.participant.create({
+            const p = await this.prisma.participant.create({
                 data: {
                     meetingId: id,
                     guestName: dto.guestName,
@@ -296,7 +298,11 @@ export class MeetingsService {
                     joinedAt: new Date(),
                     inviteToken: crypto.randomUUID(),
                 },
-            }) as any;
+            });
+            participantId = p.id;
+            participantName = p.guestName ?? "Guest";
+            participantIdentity = p.id;
+            participantRole = p.role;
         }
 
         // Update meeting status if first participant
@@ -311,10 +317,7 @@ export class MeetingsService {
         }
 
         // Generate LiveKit token
-        const participantName =
-            (participant as any).user?.name || participant.guestName || "Guest";
-        const participantIdentity = participant.userId || participant.id;
-        const isHost = participant.role === "HOST" || participant.role === "COHOST";
+        const isHost = participantRole === "HOST" || participantRole === "COHOST";
 
         const token = await this.livekit.createToken(
             meeting.roomName,
@@ -325,8 +328,8 @@ export class MeetingsService {
                 canPublish: true,
                 canSubscribe: true,
                 metadata: JSON.stringify({
-                    participantId: participant.id,
-                    role: participant.role,
+                    participantId,
+                    role: participantRole,
                 }),
             }
         );
@@ -338,9 +341,9 @@ export class MeetingsService {
                 roomName: meeting.roomName,
             },
             participant: {
-                id: participant.id,
+                id: participantId,
                 name: participantName,
-                role: participant.role,
+                role: participantRole,
             },
             token,
             livekitUrl: process.env.LIVEKIT_URL || "ws://localhost:7880",
@@ -371,9 +374,9 @@ export class MeetingsService {
         const egresses = await this.livekit.listEgress(meeting.roomName);
         for (const egress of egresses) {
             try {
-                await this.livekit.stopRecording((egress as any).egressId);
+                await this.livekit.stopRecording(egress.egressId);
             } catch (error) {
-                console.error("Failed to stop egress:", error);
+                this.logger.warn(`Failed to stop egress: ${(error as Error).message}`);
             }
         }
 
@@ -422,7 +425,7 @@ export class MeetingsService {
             data: {
                 meetingId: id,
                 status: "PROCESSING",
-                egressId: (egress as any).egressId,
+                egressId: egress.egressId,
             },
         });
 

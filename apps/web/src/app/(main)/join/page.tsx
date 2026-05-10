@@ -18,12 +18,8 @@ export default function JoinPage() {
         setError("");
 
         try {
-            const token = localStorage.getItem("accessToken");
-            const headers: HeadersInit = { "Content-Type": "application/json" };
-            if (token) headers["Authorization"] = `Bearer ${token}`;
-
             const res = await fetch(`/api/v1/meetings/lookup?alias=${encodeURIComponent(alias)}`, {
-                headers,
+                credentials: "include",
             });
 
             if (!res.ok) {

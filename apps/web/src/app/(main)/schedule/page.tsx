@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/store";
 
 export default function SchedulePage() {
     const router = useRouter();
+    const { isAuthenticated } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         title: "",
@@ -16,15 +18,15 @@ export default function SchedulePage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!isAuthenticated) {
+            router.push("/login");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem("accessToken");
-            if (!token) {
-                router.push("/login");
-                return;
-            }
-
             const startDate = new Date(formData.scheduledStart);
             if (isNaN(startDate.getTime())) {
                 throw new Error("Invalid start time");
@@ -32,10 +34,8 @@ export default function SchedulePage() {
 
             const res = await fetch("/api/v1/meetings", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
                     title: formData.title,
                     description: formData.description,
@@ -45,12 +45,12 @@ export default function SchedulePage() {
                 }),
             });
 
+            if (res.status === 401) { router.push("/login"); return; }
             if (!res.ok) throw new Error("Failed to schedule meeting");
 
             router.push("/dashboard");
         } catch (error) {
-            console.error(error);
-            alert("Failed to schedule meeting");
+            alert(error instanceof Error ? error.message : "Failed to schedule meeting");
         } finally {
             setIsLoading(false);
         }

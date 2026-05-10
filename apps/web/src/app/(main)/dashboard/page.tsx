@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { WeekView } from "@/components/dashboard/WeekView";
+import { useAuthStore } from "@/lib/store";
 
 interface Meeting {
     id: string;
@@ -16,41 +17,27 @@ interface Meeting {
 
 export default function DashboardPage() {
     const router = useRouter();
+    const { isAuthenticated, user } = useAuthStore();
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [userName, setUserName] = useState("Guest");
 
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
+        if (!isAuthenticated) {
             router.push("/login");
             return;
         }
 
-        // Fetch user profile
-        fetch("/api/v1/users/me", {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                if (data.name) setUserName(data.name);
+        fetch("/api/v1/meetings", { credentials: "include" })
+            .then((res) => {
+                if (res.status === 401) { router.push("/login"); return null; }
+                return res.json();
             })
-            .catch(console.error);
-
-        // Fetch meetings
-        fetch("/api/v1/meetings", {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-            .then((res) => res.json())
             .then((data) => {
-                setMeetings(data.items || []);
+                if (data) setMeetings(data.items || []);
                 setIsLoading(false);
             })
-            .catch((err) => {
-                console.error(err);
-                setIsLoading(false);
-            });
-    }, [router]);
+            .catch(() => setIsLoading(false));
+    }, [isAuthenticated, router]);
 
     const handleNewMeeting = () => {
         router.push("/meeting/new");
@@ -80,7 +67,7 @@ export default function DashboardPage() {
                 className="flex items-center justify-between"
             >
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {userName}</h1>
+                    <h1 className="text-3xl font-bold text-white mb-2">Welcome back, {user?.name ?? "Guest"}</h1>
                     <p className="text-gray-400">Here's your schedule for the week.</p>
                 </div>
             </motion.div>
