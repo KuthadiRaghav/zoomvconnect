@@ -17,6 +17,7 @@ import {
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import { MeetingControls } from "./MeetingControls";
+import { CaptionsOverlay } from "./CaptionsOverlay";
 
 interface MeetingRoomProps {
     token: string;
@@ -68,6 +69,7 @@ export function MeetingRoom({
 function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string; meetingTitle: string; onLeave: () => void }) {
     const { localParticipant } = useLocalParticipant();
     const [showChat, setShowChat] = useState(false);
+    const [captionsEnabled, setCaptionsEnabled] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingId, setRecordingId] = useState<string | null>(null);
 
@@ -179,6 +181,9 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 </div>
             )}
 
+            {/* Live Captions Overlay */}
+            <CaptionsOverlay enabled={captionsEnabled} />
+
             {/* Controls */}
             <MeetingControls
                 onLeave={onLeave}
@@ -188,6 +193,8 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 isRecording={isRecording}
                 onToggleRecording={handleToggleRecording}
                 isHost={isHost}
+                captionsEnabled={captionsEnabled}
+                onToggleCaptions={() => setCaptionsEnabled(!captionsEnabled)}
             />
 
             {/* Audio */}
