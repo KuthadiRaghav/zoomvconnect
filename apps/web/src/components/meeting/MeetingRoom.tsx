@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     LiveKitRoom,
@@ -17,6 +17,7 @@ import {
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import { MeetingControls } from "./MeetingControls";
+import { WaitingRoomPanel } from "./WaitingRoomPanel";
 
 interface MeetingRoomProps {
     token: string;
@@ -68,12 +69,31 @@ export function MeetingRoom({
 function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string; meetingTitle: string; onLeave: () => void }) {
     const { localParticipant } = useLocalParticipant();
     const [showChat, setShowChat] = useState(false);
+    const [showWaitingRoom, setShowWaitingRoom] = useState(false);
+    const [waitingCount, setWaitingCount] = useState(0);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingId, setRecordingId] = useState<string | null>(null);
 
     // Determine if host based on metadata
     const metadata = localParticipant?.metadata ? JSON.parse(localParticipant.metadata) : {};
     const isHost = metadata.role === "HOST" || metadata.role === "COHOST";
+
+    // Poll waiting room count every 5s when host
+    useEffect(() => {
+        if (!isHost) return;
+        const poll = async () => {
+            try {
+                const res = await fetch(`/api/v1/meetings/${meetingId}/waiting-room`, { credentials: "include" });
+                if (res.ok) {
+                    const data = await res.json();
+                    setWaitingCount(Array.isArray(data) ? data.length : 0);
+                }
+            } catch { /* ignore */ }
+        };
+        poll();
+        const id = setInterval(poll, 5000);
+        return () => clearInterval(id);
+    }, [isHost, meetingId]);
 
     // Track recording status - ideally this should be synced with room metadata or API
     // For now, simple state or check room metadata if available
@@ -179,6 +199,15 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 </div>
             )}
 
+            {/* Waiting Room Panel (host only) */}
+            {isHost && (
+                <WaitingRoomPanel
+                    meetingId={meetingId}
+                    isOpen={showWaitingRoom}
+                    onClose={() => setShowWaitingRoom(false)}
+                />
+            )}
+
             {/* Controls */}
             <MeetingControls
                 onLeave={onLeave}
@@ -188,6 +217,9 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 isRecording={isRecording}
                 onToggleRecording={handleToggleRecording}
                 isHost={isHost}
+                onToggleWaitingRoom={isHost ? () => setShowWaitingRoom((v) => !v) : undefined}
+                isWaitingRoomOpen={showWaitingRoom}
+                waitingCount={waitingCount}
             />
 
             {/* Audio */}
