@@ -17,6 +17,7 @@ import {
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import { MeetingControls } from "./MeetingControls";
+import { BreakoutRoomPanel } from "./BreakoutRoomPanel";
 
 interface MeetingRoomProps {
     token: string;
@@ -68,6 +69,7 @@ export function MeetingRoom({
 function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string; meetingTitle: string; onLeave: () => void }) {
     const { localParticipant } = useLocalParticipant();
     const [showChat, setShowChat] = useState(false);
+    const [showBreakout, setShowBreakout] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingId, setRecordingId] = useState<string | null>(null);
 
@@ -179,6 +181,16 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 </div>
             )}
 
+            {/* Breakout Room Panel */}
+            {isHost && (
+                <BreakoutRoomPanel
+                    meetingId={meetingId}
+                    isOpen={showBreakout}
+                    onClose={() => setShowBreakout(false)}
+                    allParticipants={[]}
+                />
+            )}
+
             {/* Controls */}
             <MeetingControls
                 onLeave={onLeave}
@@ -188,6 +200,8 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 isRecording={isRecording}
                 onToggleRecording={handleToggleRecording}
                 isHost={isHost}
+                onToggleBreakout={isHost ? () => setShowBreakout((v) => !v) : undefined}
+                isBreakoutOpen={showBreakout}
             />
 
             {/* Audio */}
