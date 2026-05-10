@@ -17,6 +17,7 @@ import {
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import { MeetingControls } from "./MeetingControls";
+import { useHandRaise } from "@/lib/useHandRaise";
 
 interface MeetingRoomProps {
     token: string;
@@ -74,6 +75,8 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
     // Determine if host based on metadata
     const metadata = localParticipant?.metadata ? JSON.parse(localParticipant.metadata) : {};
     const isHost = metadata.role === "HOST" || metadata.role === "COHOST";
+
+    const { raisedHands, isLocalHandRaised, toggleHand, lowerAllHands } = useHandRaise();
 
     // Track recording status - ideally this should be synced with room metadata or API
     // For now, simple state or check room metadata if available
@@ -164,6 +167,18 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                             <span className="text-red-200 text-xs font-bold uppercase tracking-wider">REC</span>
                         </div>
                     )}
+
+                    {raisedHands.length > 0 && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/20 backdrop-blur-md rounded-full border border-yellow-500/30">
+                            <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                            </svg>
+                            <span className="text-yellow-200 text-xs font-bold">
+                                {raisedHands.map((h) => h.name).slice(0, 3).join(", ")}
+                                {raisedHands.length > 3 ? ` +${raisedHands.length - 3}` : ""}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </header>
 
@@ -188,6 +203,10 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 isRecording={isRecording}
                 onToggleRecording={handleToggleRecording}
                 isHost={isHost}
+                isHandRaised={isLocalHandRaised}
+                onToggleHand={toggleHand}
+                raisedHandCount={raisedHands.length}
+                onLowerAllHands={isHost ? lowerAllHands : undefined}
             />
 
             {/* Audio */}

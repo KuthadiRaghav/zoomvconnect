@@ -11,6 +11,10 @@ interface MeetingControlsProps {
     isRecording: boolean;
     onToggleRecording: () => void;
     isHost: boolean;
+    isHandRaised: boolean;
+    onToggleHand: () => void;
+    raisedHandCount: number;
+    onLowerAllHands?: () => void;
 }
 
 export function MeetingControls({
@@ -21,6 +25,10 @@ export function MeetingControls({
     isRecording,
     onToggleRecording,
     isHost,
+    isHandRaised,
+    onToggleHand,
+    raisedHandCount,
+    onLowerAllHands,
 }: MeetingControlsProps) {
     const room = useRoomContext();
     const { localParticipant } = useLocalParticipant();
@@ -104,6 +112,39 @@ export function MeetingControls({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                 </ControlButton>
+
+                {/* Hand Raise */}
+                <div className="relative">
+                    <ControlButton
+                        onClick={onToggleHand}
+                        isActive={isHandRaised}
+                        activeClass="bg-yellow-500/20 text-yellow-400 border border-yellow-500/50"
+                        inactiveClass="bg-gray-700 text-white hover:bg-gray-600"
+                        label={isHandRaised ? "Lower Hand" : "Raise Hand"}
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                        </svg>
+                    </ControlButton>
+                    {raisedHandCount > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-yellow-500 text-black text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                            {raisedHandCount}
+                        </span>
+                    )}
+                </div>
+
+                {/* Lower All Hands (host only, shown when hands are raised) */}
+                {isHost && raisedHandCount > 0 && onLowerAllHands && (
+                    <ControlButton
+                        onClick={onLowerAllHands}
+                        isActive={false}
+                        activeClass=""
+                        inactiveClass="bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 text-xs"
+                        label="Lower All Hands"
+                    >
+                        <span className="text-[10px] font-bold px-1 whitespace-nowrap">↓ All</span>
+                    </ControlButton>
+                )}
 
                 <div className="w-px h-8 bg-gray-700 mx-2" />
 
