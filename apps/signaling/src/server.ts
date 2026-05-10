@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import Redis from "ioredis";
 import { WS_EVENTS } from "@zoomvconnect/shared";
 import { RoomManager } from "./room-manager";
+import { createLogger } from "./logger";
 
 interface ServerConfig {
     port: number;
@@ -24,6 +25,7 @@ interface IncomingMessage {
 }
 
 export class SignalingServer {
+    private readonly logger = createLogger("SignalingServer");
     private wss: WebSocketServer;
     private httpServer: Server;
     private redis: Redis;
@@ -54,16 +56,15 @@ export class SignalingServer {
         // If URL starts with rediss://, convert to redis:// since we handle TLS via options
         const cleanUrl = config.redisUrl.replace(/^rediss:\/\//, "redis://");
 
-        console.log(`[Signaling] Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} with TLS: ${needsTls}`);
+        this.logger.info(`Connecting to Redis at ${cleanUrl.replace(/:[^:@]*@/, ":***@")} (TLS: ${needsTls})`);
 
         this.redis = new Redis(cleanUrl, redisOptions);
         this.subscriber = new Redis(cleanUrl, redisOptions);
 
-        // Attach error handlers to prevent unhandled error crashes
-        this.redis.on("error", (err) => console.error("[Signaling] Redis error:", err.message));
-        this.redis.on("connect", () => console.log("[Signaling] Redis connected successfully"));
-        this.subscriber.on("error", (err) => console.error("[Signaling] Redis subscriber error:", err.message));
-        this.subscriber.on("connect", () => console.log("[Signaling] Redis subscriber connected successfully"));
+        this.redis.on("error", (err) => this.logger.error(`Redis error: ${err.message}`));
+        this.redis.on("ready", () => this.logger.info("Redis ready"));
+        this.subscriber.on("error", (err) => this.logger.error(`Redis subscriber error: ${err.message}`));
+        this.subscriber.on("ready", () => this.logger.info("Redis subscriber ready"));
 
         this.roomManager = new RoomManager(this.redis);
 

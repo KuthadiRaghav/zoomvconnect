@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
     AccessToken,
@@ -10,6 +10,7 @@ import {
 
 @Injectable()
 export class LivekitService {
+    private readonly logger = new Logger(LivekitService.name);
     private readonly apiKey: string;
     private readonly apiSecret: string;
     private readonly apiUrl: string;
@@ -170,7 +171,7 @@ export class LivekitService {
             );
             return egress;
         } catch (error) {
-            console.error("Failed to start recording:", error);
+            this.logger.error(`Failed to start recording: ${(error as Error).message}`);
             return null;
         }
     }

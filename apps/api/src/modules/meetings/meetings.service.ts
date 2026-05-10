@@ -3,6 +3,7 @@ import {
     NotFoundException,
     ForbiddenException,
     BadRequestException,
+    Logger,
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
@@ -35,6 +36,8 @@ function generateRoomName(): string {
 
 @Injectable()
 export class MeetingsService {
+    private readonly logger = new Logger(MeetingsService.name);
+
     constructor(
         private prisma: PrismaService,
         private redis: RedisService,
@@ -373,7 +376,7 @@ export class MeetingsService {
             try {
                 await this.livekit.stopRecording((egress as any).egressId);
             } catch (error) {
-                console.error("Failed to stop egress:", error);
+                this.logger.warn(`Failed to stop egress: ${(error as Error).message}`);
             }
         }
 
