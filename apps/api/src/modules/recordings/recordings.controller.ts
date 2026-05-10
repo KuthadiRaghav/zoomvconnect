@@ -1,6 +1,7 @@
 import {
     Controller,
     Get,
+    Post,
     Delete,
     Param,
     Query,
@@ -58,6 +59,18 @@ export class RecordingsController {
         @CurrentUser("id") userId: string
     ) {
         return this.recordingsService.getTranscript(id, userId);
+    }
+
+    @Post(":id/summarize")
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: "Generate AI summary for a recording transcript" })
+    @ApiResponse({ status: 200, description: "Updated transcript with AI summary" })
+    @ApiResponse({ status: 404, description: "Transcript not available" })
+    async summarize(
+        @Param("id") id: string,
+        @CurrentUser("id") userId: string
+    ) {
+        return this.recordingsService.summarize(id, userId);
     }
 
     @Delete(":id")
