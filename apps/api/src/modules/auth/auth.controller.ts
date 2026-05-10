@@ -9,6 +9,7 @@ import {
     Res,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 import { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import { RegisterDto, LoginDto } from "./dto/auth.dto";
@@ -42,6 +43,7 @@ export class AuthController {
     }
 
     @Post("register")
+    @Throttle({ short: { ttl: 60000, limit: 5 } })
     @ApiOperation({ summary: "Register a new user" })
     @ApiResponse({ status: 201, description: "User registered successfully" })
     @ApiResponse({ status: 409, description: "Email already registered" })
@@ -56,6 +58,7 @@ export class AuthController {
 
     @Post("login")
     @HttpCode(HttpStatus.OK)
+    @Throttle({ short: { ttl: 60000, limit: 5 } })
     @ApiOperation({ summary: "Login with email and password" })
     @ApiResponse({ status: 200, description: "Login successful" })
     @ApiResponse({ status: 401, description: "Invalid credentials" })
@@ -70,6 +73,7 @@ export class AuthController {
 
     @Post("refresh")
     @HttpCode(HttpStatus.OK)
+    @Throttle({ short: { ttl: 60000, limit: 10 } })
     @ApiOperation({ summary: "Refresh access token using cookie" })
     @ApiResponse({ status: 200, description: "Token refreshed" })
     @ApiResponse({ status: 401, description: "Invalid or missing refresh token" })
