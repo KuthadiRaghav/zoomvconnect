@@ -12,6 +12,7 @@ import {
     ControlBar,
     Chat,
     useLocalParticipant,
+    useParticipants,
     FocusLayout,
     CarouselLayout,
 } from "@livekit/components-react";
@@ -22,6 +23,7 @@ import { BreakoutRoomPanel } from "./BreakoutRoomPanel";
 import { WaitingRoomPanel } from "./WaitingRoomPanel";
 import { PollPanel } from "./PollPanel";
 import { VirtualBackgroundPanel } from "./VirtualBackgroundPanel";
+import { ParticipantsPanel } from "./ParticipantsPanel";
 import { useHandRaise } from "@/lib/useHandRaise";
 
 interface MeetingRoomProps {
@@ -79,6 +81,8 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
     const [waitingCount, setWaitingCount] = useState(0);
     const [showPolls, setShowPolls] = useState(false);
     const [showVirtualBg, setShowVirtualBg] = useState(false);
+    const [showParticipants, setShowParticipants] = useState(false);
+    const remoteParticipants = useParticipants();
     const [isRecording, setIsRecording] = useState(false);
     const [recordingId, setRecordingId] = useState<string | null>(null);
 
@@ -223,7 +227,6 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                     meetingId={meetingId}
                     isOpen={showWaitingRoom}
                     onClose={() => setShowWaitingRoom(false)}
-                    onAdmit={() => setWaitingCount((c) => Math.max(0, c - 1))}
                 />
             )}
 
@@ -237,6 +240,12 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
             <VirtualBackgroundPanel
                 isOpen={showVirtualBg}
                 onClose={() => setShowVirtualBg(false)}
+            />
+
+            <ParticipantsPanel
+                isOpen={showParticipants}
+                onClose={() => setShowParticipants(false)}
+                isHost={isHost}
             />
 
             <MeetingControls
@@ -262,6 +271,9 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 onToggleWaitingRoom={isHost ? () => setShowWaitingRoom((v) => !v) : undefined}
                 isWaitingRoomOpen={showWaitingRoom}
                 waitingCount={waitingCount}
+                onToggleParticipants={() => setShowParticipants((v) => !v)}
+                isParticipantsOpen={showParticipants}
+                participantCount={remoteParticipants.length + 1}
             />
 
             <RoomAudioRenderer />

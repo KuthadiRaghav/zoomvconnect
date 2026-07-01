@@ -68,11 +68,11 @@ export function useHandRaise() {
     useEffect(() => {
         refresh();
         room.on(RoomEvent.ParticipantMetadataChanged, refresh);
-        room.on(RoomEvent.LocalParticipantMetadataChanged, refresh);
+        room.on(RoomEvent.ParticipantMetadataChanged, refresh);
         room.on(RoomEvent.DataReceived, onData);
         return () => {
             room.off(RoomEvent.ParticipantMetadataChanged, refresh);
-            room.off(RoomEvent.LocalParticipantMetadataChanged, refresh);
+            room.off(RoomEvent.ParticipantMetadataChanged, refresh);
             room.off(RoomEvent.DataReceived, onData);
         };
     }, [room, refresh, onData]);
