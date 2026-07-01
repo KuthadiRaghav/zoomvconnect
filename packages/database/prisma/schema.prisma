@@ -35,7 +35,10 @@ model User {
   
   // Chat
   chatMessages  ChatMessage[]
-  
+
+  // Polls created by this user
+  createdPolls  Poll[]     @relation("PollCreator")
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -130,6 +133,9 @@ model Meeting {
   // Chat messages
   chatMessages    ChatMessage[]
 
+  // Polls
+  polls           Poll[]
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -154,6 +160,7 @@ model Participant {
   guestEmail  String?
   
   role        ParticipantRole @default(ATTENDEE)
+  isWaiting   Boolean         @default(false)
   joinedAt    DateTime?
   leftAt      DateTime?
   
@@ -217,6 +224,48 @@ model ChatMessage {
 
   @@index([meetingId])
   @@index([senderId])
+}
+
+// ===========================================
+// Polls & Q&A
+// ===========================================
+
+model Poll {
+  id          String     @id @default(cuid())
+
+  meetingId   String
+  meeting     Meeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User       @relation("PollCreator", fields: [createdById], references: [id])
+
+  question    String
+  options     Json       // String[]
+
+  isOpen      Boolean    @default(true)
+  closedAt    DateTime?
+
+  votes       PollVote[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([meetingId])
+}
+
+model PollVote {
+  id            String   @id @default(cuid())
+
+  pollId        String
+  poll          Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  participantId String
+  optionIndex   Int
+
+  createdAt     DateTime @default(now())
+
+  @@unique([pollId, participantId])
+  @@index([pollId])
 }
 
 // ===========================================

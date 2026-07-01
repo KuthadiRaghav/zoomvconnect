@@ -355,6 +355,9 @@ export class MeetingsService {
         let participantName: string;
         let participantIdentity: string;
         let participantRole: string;
+        const isHostJoining = userId && meeting.hostId === userId;
+        // Participants go to waiting room unless they are the host or waiting room is disabled
+        const sendToWaiting = meeting.waitingRoom && !isHostJoining;
 
         if (userId) {
             const p = await this.prisma.participant.upsert({
@@ -362,10 +365,15 @@ export class MeetingsService {
                 create: {
                     meetingId: id,
                     userId,
-                    role: meeting.hostId === userId ? "HOST" : "ATTENDEE",
-                    joinedAt: new Date(),
+                    role: isHostJoining ? "HOST" : "ATTENDEE",
+                    isWaiting: sendToWaiting,
+                    joinedAt: sendToWaiting ? undefined : new Date(),
                 },
-                update: { joinedAt: new Date(), leftAt: null },
+                update: {
+                    isWaiting: sendToWaiting,
+                    joinedAt: sendToWaiting ? undefined : new Date(),
+                    leftAt: null,
+                },
                 include: {
                     user: { select: { id: true, name: true, email: true, avatarUrl: true } },
                 },
@@ -384,7 +392,8 @@ export class MeetingsService {
                     guestName: dto.guestName,
                     guestEmail: dto.guestEmail,
                     role: "ATTENDEE",
-                    joinedAt: new Date(),
+                    isWaiting: sendToWaiting,
+                    joinedAt: sendToWaiting ? undefined : new Date(),
                     inviteToken: crypto.randomUUID(),
                 },
             });
@@ -394,7 +403,16 @@ export class MeetingsService {
             participantRole = p.role;
         }
 
-        // Update meeting status if first participant
+        // If participant is in waiting room, return early — no LiveKit token yet
+        if (sendToWaiting) {
+            return {
+                status: "waiting" as const,
+                meeting: { id: meeting.id, title: meeting.title, roomName: meeting.roomName },
+                participant: { id: participantId, name: participantName, role: participantRole },
+            };
+        }
+
+        // Update meeting status if first admitted participant
         if (meeting.status === "SCHEDULED" || meeting.status === "WAITING") {
             await this.prisma.meeting.update({
                 where: { id },
@@ -424,6 +442,7 @@ export class MeetingsService {
         );
 
         return {
+            status: "admitted" as const,
             meeting: {
                 id: meeting.id,
                 title: meeting.title,
@@ -437,6 +456,136 @@ export class MeetingsService {
             token,
             livekitUrl: process.env.LIVEKIT_URL || "ws://localhost:7880",
         };
+    }
+
+    async listWaiting(meetingId: string, hostUserId: string) {
+        const meeting = await this.prisma.meeting.findUnique({
+            where: { id: meetingId },
+            select: { hostId: true },
+        });
+        if (!meeting) throw new NotFoundException("Meeting not found");
+        if (meeting.hostId !== hostUserId) throw new ForbiddenException("Only the host can view the waiting room");
+
+        return this.prisma.participant.findMany({
+            where: { meetingId, isWaiting: true },
+            include: {
+                user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            },
+            orderBy: { createdAt: "asc" },
+        });
+    }
+
+    async admitParticipant(meetingId: string, participantId: string, hostUserId: string) {
+        const meeting = await this.prisma.meeting.findUnique({
+            where: { id: meetingId },
+        });
+        if (!meeting) throw new NotFoundException("Meeting not found");
+        if (meeting.hostId !== hostUserId) throw new ForbiddenException("Only the host can admit participants");
+
+        const participant = await this.prisma.participant.findUnique({
+            where: { id: participantId },
+            include: { user: { select: { id: true, name: true } } },
+        });
+        if (!participant || participant.meetingId !== meetingId) {
+            throw new NotFoundException("Participant not found");
+        }
+
+        await this.prisma.participant.update({
+            where: { id: participantId },
+            data: { isWaiting: false, joinedAt: new Date() },
+        });
+
+        // Update meeting status
+        if (meeting.status === "SCHEDULED" || meeting.status === "WAITING") {
+            await this.prisma.meeting.update({
+                where: { id: meetingId },
+                data: { status: "IN_PROGRESS", actualStart: meeting.actualStart || new Date() },
+            });
+        }
+
+        const identity = participant.userId ?? participant.id;
+        const name = participant.user?.name ?? participant.guestName ?? "Guest";
+        const isHost = participant.role === "HOST" || participant.role === "COHOST";
+
+        const token = await this.livekit.createToken(meeting.roomName, identity, name, {
+            isHost,
+            canPublish: true,
+            canSubscribe: true,
+            metadata: JSON.stringify({ participantId, role: participant.role }),
+        });
+
+        return {
+            participantId,
+            token,
+            livekitUrl: process.env.LIVEKIT_URL || "ws://localhost:7880",
+        };
+    }
+
+    async denyParticipant(meetingId: string, participantId: string, hostUserId: string) {
+        const meeting = await this.prisma.meeting.findUnique({
+            where: { id: meetingId },
+            select: { id: true, hostId: true },
+        });
+        if (!meeting) throw new NotFoundException("Meeting not found");
+        if (meeting.hostId !== hostUserId) throw new ForbiddenException("Only the host can deny participants");
+
+        const participant = await this.prisma.participant.findUnique({ where: { id: participantId } });
+        if (!participant || participant.meetingId !== meetingId) {
+            throw new NotFoundException("Participant not found");
+        }
+
+        await this.prisma.participant.delete({ where: { id: participantId } });
+        return { denied: participantId };
+    }
+
+    async admitAll(meetingId: string, hostUserId: string) {
+        const meeting = await this.prisma.meeting.findUnique({ where: { id: meetingId } });
+        if (!meeting) throw new NotFoundException("Meeting not found");
+        if (meeting.hostId !== hostUserId) throw new ForbiddenException("Only the host can admit participants");
+
+        const waiting = await this.prisma.participant.findMany({
+            where: { meetingId, isWaiting: true },
+            include: { user: { select: { id: true, name: true } } },
+        });
+
+        await this.prisma.participant.updateMany({
+            where: { meetingId, isWaiting: true },
+            data: { isWaiting: false, joinedAt: new Date() },
+        });
+
+        if (waiting.length > 0 && (meeting.status === "SCHEDULED" || meeting.status === "WAITING")) {
+            await this.prisma.meeting.update({
+                where: { id: meetingId },
+                data: { status: "IN_PROGRESS", actualStart: meeting.actualStart || new Date() },
+            });
+        }
+
+        const tokens = await Promise.all(
+            waiting.map(async (p) => {
+                const identity = p.userId ?? p.id;
+                const name = p.user?.name ?? p.guestName ?? "Guest";
+                const token = await this.livekit.createToken(meeting.roomName, identity, name, {
+                    isHost: false,
+                    canPublish: true,
+                    canSubscribe: true,
+                    metadata: JSON.stringify({ participantId: p.id, role: p.role }),
+                });
+                return { participantId: p.id, token };
+            })
+        );
+
+        return { admitted: waiting.length, tokens, livekitUrl: process.env.LIVEKIT_URL || "ws://localhost:7880" };
+    }
+
+    async checkAdmissionStatus(meetingId: string, participantId: string) {
+        const participant = await this.prisma.participant.findUnique({
+            where: { id: participantId },
+            select: { isWaiting: true, meetingId: true },
+        });
+        if (!participant || participant.meetingId !== meetingId) {
+            throw new NotFoundException("Participant not found");
+        }
+        return { isWaiting: participant.isWaiting };
     }
 
     async leave(id: string, participantId: string) {
