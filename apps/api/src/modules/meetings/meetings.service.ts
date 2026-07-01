@@ -9,6 +9,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { RedisService } from "../../redis/redis.service";
 import { LivekitService } from "../livekit/livekit.service";
 import { CreateMeetingDto, UpdateMeetingDto, JoinMeetingDto } from "./dto/meeting.dto";
+import { EmailService } from "../email/email.service";
 
 // Inline utility functions
 function generatePasscode(length: number = 6): string {
@@ -41,7 +42,8 @@ export class MeetingsService {
     constructor(
         private prisma: PrismaService,
         private redis: RedisService,
-        private livekit: LivekitService
+        private livekit: LivekitService,
+        private email: EmailService,
     ) { }
 
     async create(userId: string, dto: CreateMeetingDto) {
@@ -89,7 +91,30 @@ export class MeetingsService {
             await this.createRecurringInstances(meeting.id, userId, dto);
         }
 
+        // Send confirmation email to host if they have email notifications enabled
+        this.sendMeetingConfirmationEmail(meeting, meeting.host).catch((err) =>
+            this.logger.error("Failed to send meeting confirmation email", err),
+        );
+
         return meeting;
+    }
+
+    private async sendMeetingConfirmationEmail(
+        meeting: { id: string; title: string; scheduledStart: Date | null; passcode: string | null },
+        host: { id: string; email: string; name: string | null },
+    ): Promise<void> {
+        const settings = await this.prisma.userSettings.findUnique({ where: { userId: host.id } });
+        if (!settings?.emailNotifications) return;
+
+        await this.email.sendMeetingConfirmation({
+            to: host.email,
+            recipientName: host.name,
+            meetingTitle: meeting.title,
+            meetingId: meeting.id,
+            scheduledStart: meeting.scheduledStart ?? undefined,
+            passcode: meeting.passcode ?? undefined,
+            isHost: true,
+        });
     }
 
     private async createRecurringInstances(

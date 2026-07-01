@@ -81,9 +81,11 @@ export function useLiveCaptions(enabled: boolean) {
             );
         };
 
-        room.on(RoomEvent.TranscriptionReceived as string, handler);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (room as any).on(RoomEvent.TranscriptionReceived, handler);
         return () => {
-            room.off(RoomEvent.TranscriptionReceived as string, handler);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (room as any).off(RoomEvent.TranscriptionReceived, handler);
         };
     }, [room, enabled, onTranscription]);
 

@@ -132,19 +132,39 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         </svg>
                     }
                 />
+                <SidebarItem
+                    href="/profile"
+                    active={isActive("/profile")}
+                    label="Profile & Settings"
+                    icon={
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                    }
+                />
             </nav>
 
             {/* Bottom Section */}
-            <div className="pt-6 border-t border-white/5">
-                <button
-                    onClick={handleLogout}
+            <div className="pt-6 border-t border-white/5 space-y-1">
+                <Link
+                    href="/profile"
                     className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-white/5 transition-colors text-left group"
                 >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 border-2 border-gray-900 group-hover:border-white/20 transition-colors" />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 border-2 border-gray-900 group-hover:border-white/20 transition-colors flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white truncate">My Profile</p>
-                        <p className="text-xs text-gray-500 truncate">Sign out</p>
+                        <p className="text-xs text-gray-500 truncate">Settings & preferences</p>
                     </div>
+                </Link>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 w-full px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-left text-gray-400 hover:text-white text-sm"
+                >
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign out
                 </button>
             </div>
         </aside>
