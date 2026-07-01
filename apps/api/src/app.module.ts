@@ -9,6 +9,7 @@ import { BreakoutRoomsModule } from "./modules/breakout-rooms/breakout-rooms.mod
 import { RecordingsModule } from "./modules/recordings/recordings.module";
 import { UsersModule } from "./modules/users/users.module";
 import { LivekitModule } from "./modules/livekit/livekit.module";
+import { PollsModule } from "./modules/polls/polls.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
 
@@ -70,6 +71,7 @@ import { RedisModule } from "./redis/redis.module";
         BreakoutRoomsModule,
         RecordingsModule,
         UsersModule,
+        PollsModule,
     ],
     providers: [
         { provide: APP_GUARD, useClass: ThrottlerGuard },
