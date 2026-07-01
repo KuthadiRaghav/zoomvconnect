@@ -11,8 +11,27 @@ interface MeetingControlsProps {
     isRecording: boolean;
     onToggleRecording: () => void;
     isHost: boolean;
+    // Hand raise (PR #6)
+    isHandRaised?: boolean;
+    onToggleHand?: () => void;
+    raisedHandCount?: number;
+    onLowerAllHands?: () => void;
+    // Captions (PR #9/main)
     captionsEnabled?: boolean;
     onToggleCaptions?: () => void;
+    // Virtual background (PR #8)
+    onToggleVirtualBg?: () => void;
+    isVirtualBgOpen?: boolean;
+    // Polls (PR #7)
+    onTogglePolls?: () => void;
+    isPollsOpen?: boolean;
+    // Breakout rooms (PR #4)
+    onToggleBreakout?: () => void;
+    isBreakoutOpen?: boolean;
+    // Waiting room (PR #5)
+    onToggleWaitingRoom?: () => void;
+    isWaitingRoomOpen?: boolean;
+    waitingCount?: number;
 }
 
 export function MeetingControls({
@@ -23,14 +42,25 @@ export function MeetingControls({
     isRecording,
     onToggleRecording,
     isHost,
+    isHandRaised = false,
+    onToggleHand,
+    raisedHandCount = 0,
+    onLowerAllHands,
     captionsEnabled,
     onToggleCaptions,
+    onToggleVirtualBg,
+    isVirtualBgOpen,
+    onTogglePolls,
+    isPollsOpen,
+    onToggleBreakout,
+    isBreakoutOpen,
+    onToggleWaitingRoom,
+    isWaitingRoomOpen,
+    waitingCount = 0,
 }: MeetingControlsProps) {
     const room = useRoomContext();
     const { localParticipant } = useLocalParticipant();
 
-    // Local state for toggles (livekit handles actual state, but we need force update sometimes or just use their hooks)
-    // Actually, we should use their hooks or manual track management
     const [isMicOn, setIsMicOn] = useState(localParticipant.isMicrophoneEnabled);
     const [isCamOn, setIsCamOn] = useState(localParticipant.isCameraEnabled);
     const [isScreenShareOn, setIsScreenShareOn] = useState(localParticipant.isScreenShareEnabled);
@@ -111,6 +141,41 @@ export function MeetingControls({
 
                 <div className="w-px h-8 bg-gray-700 mx-2" />
 
+                {/* Raise Hand */}
+                {onToggleHand && (
+                    <div className="relative">
+                        <ControlButton
+                            onClick={onToggleHand}
+                            isActive={isHandRaised}
+                            activeClass="bg-yellow-500/20 text-yellow-400 border border-yellow-500/50"
+                            inactiveClass="bg-gray-700 text-white hover:bg-gray-600"
+                            label={isHandRaised ? "Lower Hand" : "Raise Hand"}
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                            </svg>
+                        </ControlButton>
+                        {raisedHandCount > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-yellow-500 text-black text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                                {raisedHandCount}
+                            </span>
+                        )}
+                    </div>
+                )}
+
+                {/* Lower All Hands (host only, when hands are raised) */}
+                {isHost && raisedHandCount > 0 && onLowerAllHands && (
+                    <ControlButton
+                        onClick={onLowerAllHands}
+                        isActive={false}
+                        activeClass=""
+                        inactiveClass="bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 text-xs"
+                        label="Lower All Hands"
+                    >
+                        <span className="text-[10px] font-bold px-1 whitespace-nowrap">↓ All</span>
+                    </ControlButton>
+                )}
+
                 {/* Record (Host only) */}
                 {isHost && (
                     <ControlButton
@@ -137,7 +202,7 @@ export function MeetingControls({
                     </svg>
                 </ControlButton>
 
-                {/* Live Captions toggle */}
+                {/* Live Captions */}
                 {onToggleCaptions && (
                     <ControlButton
                         onClick={onToggleCaptions}
@@ -148,6 +213,73 @@ export function MeetingControls({
                     >
                         <span className="text-[11px] font-bold tracking-tight px-0.5">CC</span>
                     </ControlButton>
+                )}
+
+                {/* Virtual Background */}
+                {onToggleVirtualBg && (
+                    <ControlButton
+                        onClick={onToggleVirtualBg}
+                        isActive={!!isVirtualBgOpen}
+                        activeClass="bg-purple-500/20 text-purple-400 border border-purple-500/50"
+                        inactiveClass="bg-gray-700 text-white hover:bg-gray-600"
+                        label="Virtual Background"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </ControlButton>
+                )}
+
+                {/* Polls */}
+                {onTogglePolls && (
+                    <ControlButton
+                        onClick={onTogglePolls}
+                        isActive={!!isPollsOpen}
+                        activeClass="bg-indigo-600 text-white"
+                        inactiveClass="bg-gray-700 text-white hover:bg-gray-600"
+                        label="Polls"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </ControlButton>
+                )}
+
+                {/* Breakout Rooms (Host only) */}
+                {isHost && onToggleBreakout && (
+                    <ControlButton
+                        onClick={onToggleBreakout}
+                        isActive={!!isBreakoutOpen}
+                        activeClass="bg-purple-600 text-white"
+                        inactiveClass="bg-gray-700 text-white hover:bg-gray-600"
+                        label="Breakout Rooms"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </ControlButton>
+                )}
+
+                {/* Waiting Room (Host only) */}
+                {isHost && onToggleWaitingRoom && (
+                    <div className="relative">
+                        <ControlButton
+                            onClick={onToggleWaitingRoom}
+                            isActive={!!isWaitingRoomOpen}
+                            activeClass="bg-yellow-600/30 text-yellow-400"
+                            inactiveClass="bg-gray-700 text-white hover:bg-gray-600"
+                            label="Waiting Room"
+                        >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </ControlButton>
+                        {waitingCount > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold pointer-events-none">
+                                {waitingCount > 9 ? "9+" : waitingCount}
+                            </span>
+                        )}
+                    </div>
                 )}
 
                 <div className="w-px h-8 bg-gray-700 mx-2" />

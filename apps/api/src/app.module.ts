@@ -5,6 +5,7 @@ import * as Joi from "joi";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { AuthModule } from "./modules/auth/auth.module";
 import { MeetingsModule } from "./modules/meetings/meetings.module";
+import { BreakoutRoomsModule } from "./modules/breakout-rooms/breakout-rooms.module";
 import { RecordingsModule } from "./modules/recordings/recordings.module";
 import { UsersModule } from "./modules/users/users.module";
 import { LivekitModule } from "./modules/livekit/livekit.module";
@@ -66,6 +67,7 @@ import { RedisModule } from "./redis/redis.module";
         // Feature modules
         AuthModule,
         MeetingsModule,
+        BreakoutRoomsModule,
         RecordingsModule,
         UsersModule,
     ],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     LiveKitRoom,
@@ -18,6 +18,11 @@ import {
 import { Track, RoomEvent } from "livekit-client";
 import { MeetingControls } from "./MeetingControls";
 import { CaptionsOverlay } from "./CaptionsOverlay";
+import { BreakoutRoomPanel } from "./BreakoutRoomPanel";
+import { WaitingRoomPanel } from "./WaitingRoomPanel";
+import { PollPanel } from "./PollPanel";
+import { VirtualBackgroundPanel } from "./VirtualBackgroundPanel";
+import { useHandRaise } from "@/lib/useHandRaise";
 
 interface MeetingRoomProps {
     token: string;
@@ -37,7 +42,6 @@ export function MeetingRoom({
     videoEnabled = true,
 }: MeetingRoomProps) {
     const router = useRouter();
-    const [showChat, setShowChat] = useState(false);
 
     const handleDisconnect = () => {
         router.push("/dashboard");
@@ -70,15 +74,34 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
     const { localParticipant } = useLocalParticipant();
     const [showChat, setShowChat] = useState(false);
     const [captionsEnabled, setCaptionsEnabled] = useState(false);
+    const [showBreakout, setShowBreakout] = useState(false);
+    const [showWaitingRoom, setShowWaitingRoom] = useState(false);
+    const [waitingCount, setWaitingCount] = useState(0);
+    const [showPolls, setShowPolls] = useState(false);
+    const [showVirtualBg, setShowVirtualBg] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordingId, setRecordingId] = useState<string | null>(null);
 
-    // Determine if host based on metadata
     const metadata = localParticipant?.metadata ? JSON.parse(localParticipant.metadata) : {};
     const isHost = metadata.role === "HOST" || metadata.role === "COHOST";
 
-    // Track recording status - ideally this should be synced with room metadata or API
-    // For now, simple state or check room metadata if available
+    const { raisedHands, isLocalHandRaised, toggleHand, lowerAllHands } = useHandRaise();
+
+    useEffect(() => {
+        if (!isHost) return;
+        const poll = async () => {
+            try {
+                const res = await fetch(`/api/v1/meetings/${meetingId}/waiting-room`, { credentials: "include" });
+                if (res.ok) {
+                    const data = await res.json();
+                    setWaitingCount(Array.isArray(data) ? data.length : 0);
+                }
+            } catch { /* ignore */ }
+        };
+        poll();
+        const id = setInterval(poll, 5000);
+        return () => clearInterval(id);
+    }, [isHost, meetingId]);
 
     const handleToggleRecording = async () => {
         try {
@@ -117,22 +140,16 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
         }
     };
 
-    // Separate tracks for layout
     const screenTracks = useTracks([Track.Source.ScreenShare], { onlySubscribed: false });
-
-    // Get camera tracks with placeholder - this ensures ALL participants show up
-    // withPlaceholder: true creates a placeholder track for participants without camera
     const cameraTracks = useTracks(
         [{ source: Track.Source.Camera, withPlaceholder: true }],
         { onlySubscribed: false }
     );
 
-    // Check if local user is sharing
     const isScreenSharing = localParticipant.isScreenShareEnabled;
 
     return (
         <div className="flex-1 flex flex-col relative overflow-hidden">
-            {/* Glass Header */}
             <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
                 <div className="flex items-center gap-4 pointer-events-auto">
                     <div className="p-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
@@ -150,7 +167,6 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 </div>
 
                 <div className="flex items-center gap-3 pointer-events-auto">
-                    {/* Screen Share Indicator */}
                     {isScreenSharing && (
                         <div className="flex items-center gap-2 px-4 py-1.5 bg-green-500/20 backdrop-blur-md rounded-full border border-green-500/30 shadow-lg shadow-green-900/20 animate-pulse">
                             <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,25 +182,63 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                             <span className="text-red-200 text-xs font-bold uppercase tracking-wider">REC</span>
                         </div>
                     )}
+
+                    {raisedHands.length > 0 && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/20 backdrop-blur-md rounded-full border border-yellow-500/30">
+                            <svg className="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+                            </svg>
+                            <span className="text-yellow-200 text-xs font-bold">
+                                {raisedHands.map((h) => h.name).slice(0, 3).join(", ")}
+                                {raisedHands.length > 3 ? ` +${raisedHands.length - 3}` : ""}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </header>
 
-            {/* Main Layout Area - Using LiveKit VideoConference for reliable multi-participant display */}
             <div className="flex-1 pt-16 pb-20">
                 <VideoConference />
             </div>
 
-            {/* Chat Panel - Slide over */}
             {showChat && (
                 <div className="w-full sm:w-96 bg-gray-900/90 backdrop-blur-xl border-l border-white/10 shadow-2xl z-20 transition-all h-full absolute right-0 top-0 bottom-0 pt-16 pb-20 sm:pb-0 sm:pt-0 sm:relative">
                     <Chat />
                 </div>
             )}
 
-            {/* Live Captions Overlay */}
             <CaptionsOverlay enabled={captionsEnabled} />
 
-            {/* Controls */}
+            {isHost && (
+                <BreakoutRoomPanel
+                    meetingId={meetingId}
+                    isOpen={showBreakout}
+                    onClose={() => setShowBreakout(false)}
+                    allParticipants={[]}
+                />
+            )}
+
+            {isHost && (
+                <WaitingRoomPanel
+                    meetingId={meetingId}
+                    isOpen={showWaitingRoom}
+                    onClose={() => setShowWaitingRoom(false)}
+                    onAdmit={() => setWaitingCount((c) => Math.max(0, c - 1))}
+                />
+            )}
+
+            <PollPanel
+                meetingId={meetingId}
+                isHost={isHost}
+                isOpen={showPolls}
+                onClose={() => setShowPolls(false)}
+            />
+
+            <VirtualBackgroundPanel
+                isOpen={showVirtualBg}
+                onClose={() => setShowVirtualBg(false)}
+            />
+
             <MeetingControls
                 onLeave={onLeave}
                 onEnd={isHost ? handleEndMeeting : undefined}
@@ -193,11 +247,23 @@ function ActiveMeeting({ meetingId, meetingTitle, onLeave }: { meetingId: string
                 isRecording={isRecording}
                 onToggleRecording={handleToggleRecording}
                 isHost={isHost}
+                isHandRaised={isLocalHandRaised}
+                onToggleHand={toggleHand}
+                raisedHandCount={raisedHands.length}
+                onLowerAllHands={isHost ? lowerAllHands : undefined}
                 captionsEnabled={captionsEnabled}
                 onToggleCaptions={() => setCaptionsEnabled(!captionsEnabled)}
+                onToggleVirtualBg={() => setShowVirtualBg(!showVirtualBg)}
+                isVirtualBgOpen={showVirtualBg}
+                onTogglePolls={() => setShowPolls(!showPolls)}
+                isPollsOpen={showPolls}
+                onToggleBreakout={isHost ? () => setShowBreakout((v) => !v) : undefined}
+                isBreakoutOpen={showBreakout}
+                onToggleWaitingRoom={isHost ? () => setShowWaitingRoom((v) => !v) : undefined}
+                isWaitingRoomOpen={showWaitingRoom}
+                waitingCount={waitingCount}
             />
 
-            {/* Audio */}
             <RoomAudioRenderer />
         </div>
     );
@@ -208,7 +274,6 @@ function PaginatedGrid({ tracks }: { tracks: any[] }) {
     const pageSize = 9;
     const totalPages = Math.ceil(tracks.length / pageSize);
 
-    // Reset page if tracks change and we are out of bounds
     const safePage = page >= totalPages && totalPages > 0 ? totalPages - 1 : page;
 
     const visibleTracks = tracks.slice(safePage * pageSize, (safePage + 1) * pageSize);
@@ -219,7 +284,6 @@ function PaginatedGrid({ tracks }: { tracks: any[] }) {
                 <ParticipantTile />
             </GridLayout>
 
-            {/* Pagination Controls */}
             {totalPages > 1 && (
                 <>
                     {safePage > 0 && (
@@ -244,7 +308,6 @@ function PaginatedGrid({ tracks }: { tracks: any[] }) {
                         </button>
                     )}
 
-                    {/* Page Indicator */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-50">
                         {Array.from({ length: totalPages }).map((_, i) => (
                             <button
