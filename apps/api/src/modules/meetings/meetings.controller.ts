@@ -178,4 +178,66 @@ export class MeetingsController {
     ) {
         return this.meetingsService.stopRecording(id, recordingId, userId);
     }
+
+    // ── Waiting Room ──────────────────────────────────────────────────────────
+
+    @Get(":id/waiting-room")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: "List participants in the waiting room (host only)" })
+    async listWaiting(
+        @Param("id") id: string,
+        @CurrentUser("id") userId: string,
+    ) {
+        return this.meetingsService.listWaiting(id, userId);
+    }
+
+    @Post(":id/waiting-room/:participantId/admit")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: "Admit a participant from the waiting room (host only)" })
+    async admitParticipant(
+        @Param("id") id: string,
+        @Param("participantId") participantId: string,
+        @CurrentUser("id") userId: string,
+    ) {
+        return this.meetingsService.admitParticipant(id, participantId, userId);
+    }
+
+    @Post(":id/waiting-room/:participantId/deny")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: "Deny a participant from the waiting room (host only)" })
+    async denyParticipant(
+        @Param("id") id: string,
+        @Param("participantId") participantId: string,
+        @CurrentUser("id") userId: string,
+    ) {
+        return this.meetingsService.denyParticipant(id, participantId, userId);
+    }
+
+    @Post(":id/waiting-room/admit-all")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({ summary: "Admit all participants in the waiting room (host only)" })
+    async admitAll(
+        @Param("id") id: string,
+        @CurrentUser("id") userId: string,
+    ) {
+        return this.meetingsService.admitAll(id, userId);
+    }
+
+    @Get(":id/waiting-room/:participantId/status")
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: "Check whether a participant has been admitted (participant polling)" })
+    async checkAdmission(
+        @Param("id") id: string,
+        @Param("participantId") participantId: string,
+    ) {
+        return this.meetingsService.checkAdmissionStatus(id, participantId);
+    }
 }

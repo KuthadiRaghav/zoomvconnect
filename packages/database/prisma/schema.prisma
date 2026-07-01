@@ -154,6 +154,7 @@ model Participant {
   guestEmail  String?
   
   role        ParticipantRole @default(ATTENDEE)
+  isWaiting   Boolean         @default(false)
   joinedAt    DateTime?
   leftAt      DateTime?
   
